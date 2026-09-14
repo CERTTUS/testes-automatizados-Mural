@@ -26,9 +26,8 @@ Thumbs.db
 *.swp
 *.swo
 
-# Cursor
-.cursor/mcp.json
-.cursor/mcp.env
+# Cursor IDE (config e logs locais)
+.cursor/
 
 # QA_PRE_CR
 evidencias-pr/*
