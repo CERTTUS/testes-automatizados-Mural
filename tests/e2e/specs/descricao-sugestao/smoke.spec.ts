@@ -1,5 +1,4 @@
-import {expect, test} from '@playwright/test';
-import '../../helpers/pre-cr/preCrGlobalHooks';
+import {expect, test} from '../../fixtures';
 import {LoginPage} from '../../pages/LoginPage';
 import {MuralPage} from '../../pages/MuralPage';
 import {FormularioSugestaoPage} from '../../pages/FormularioSugestaoPage';

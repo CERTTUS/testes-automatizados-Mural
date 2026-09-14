@@ -1,53 +1,79 @@
 import fs from 'node:fs'
 import path from 'node:path'
-import { copiarDirRecursivo } from './empacotar.mjs'
-import { garantirDir, repoRoot } from './paths.mjs'
+import { ehArquivoProvaCt } from './provas-run.mjs'
+import { repoRoot } from './paths.mjs'
 
-const ORIGENS_PLAYWRIGHT = [
-  { origem: 'test-results', destino: 'evidencias/traces' },
-  { origem: 'playwright-report', destino: 'evidencias/html-report' },
-]
+function lerManifest(runDir) {
+  const manifestPath = path.join(runDir, 'manifest-cts.jsonl')
+  if (!fs.existsSync(manifestPath)) return []
+  const porCt = new Map()
+  for (const linha of fs.readFileSync(manifestPath, 'utf8').split('\n')) {
+    const texto = linha.trim()
+    if (!texto) continue
+    try {
+      const entrada = JSON.parse(texto)
+      if (entrada.ctId) {
+        porCt.set(entrada.ctId, { ...porCt.get(entrada.ctId), ...entrada })
+      }
+    } catch {
+      /* ignora */
+    }
+  }
+  return [...porCt.values()]
+}
+
+function copiarSeExistir(origem, destino, copiados, label) {
+  if (!fs.existsSync(origem)) return
+  if (fs.existsSync(destino)) return
+  fs.copyFileSync(origem, destino)
+  copiados.push(label)
+}
+
+function coletarVideosPorCt(runDir, root, copiados) {
+  const testResults = path.join(root, 'test-results')
+  const manifest = lerManifest(runDir)
+
+  for (const entrada of manifest) {
+    const ctId = entrada.ctId
+    if (!ctId || !entrada.outputDir) continue
+
+    const pastaTeste = path.join(root, entrada.outputDir)
+    const destino = path.join(runDir, `${ctId}-gravacao.webm`)
+
+    copiarSeExistir(
+      path.join(pastaTeste, 'video.webm'),
+      destino,
+      copiados,
+      `${ctId}-gravacao.webm`,
+    )
+
+    if (!fs.existsSync(destino)) {
+      const candidato = path.join(testResults, path.basename(pastaTeste), 'video.webm')
+      copiarSeExistir(candidato, destino, copiados, `${ctId}-gravacao.webm`)
+    }
+  }
+}
+
+function contarProvasLocais(runDir) {
+  if (!fs.existsSync(runDir)) return 0
+  return fs.readdirSync(runDir).filter((nome) => ehArquivoProvaCt(nome)).length
+}
 
 /**
- * Copia artefatos Playwright da run atual para a pasta da execução.
+ * Coleta vídeos na raiz da run (mesma pasta das fotos e JSONs).
  * @param {string} runDir
  * @returns {string[]}
  */
 export function coletarArtefatosPlaywright(runDir) {
   const root = repoRoot()
   const copiados = []
-  garantirDir(path.join(runDir, 'evidencias', 'screenshots'))
 
-  for (const { origem, destino } of ORIGENS_PLAYWRIGHT) {
-    const src = path.join(root, origem)
-    const dst = path.join(runDir, destino)
-    const n = copiarDirRecursivo(src, dst, { maxArquivos: 80 })
-    if (n > 0) copiados.push(`${origem} (${n} arquivos)`)
+  const locais = contarProvasLocais(runDir)
+  if (locais > 0) {
+    copiados.push(`run/ (${locais} prova(s) por CT)`)
   }
 
-  const apiDir = garantirDir(path.join(runDir, 'evidencias', 'api'))
-  const shotsDir = path.join(runDir, 'evidencias', 'screenshots')
-  const testResults = path.join(root, 'test-results')
-  if (fs.existsSync(testResults)) {
-    const walk = (dir) => {
-      for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-        const full = path.join(dir, entry.name)
-        if (entry.isDirectory()) walk(full)
-        else if (entry.isFile()) {
-          const lower = entry.name.toLowerCase()
-          if (lower.endsWith('-response.json') || (lower.includes('ct-api') && lower.endsWith('.json'))) {
-            fs.copyFileSync(full, path.join(apiDir, entry.name))
-            copiados.push(`api/${entry.name}`)
-          } else if (lower.endsWith('-tela-final.png') || lower.includes('ct-smk')) {
-            garantirDir(shotsDir)
-            fs.copyFileSync(full, path.join(shotsDir, entry.name))
-            copiados.push(`screenshots/${entry.name}`)
-          }
-        }
-      }
-    }
-    walk(testResults)
-  }
+  coletarVideosPorCt(runDir, root, copiados)
 
   return copiados
 }

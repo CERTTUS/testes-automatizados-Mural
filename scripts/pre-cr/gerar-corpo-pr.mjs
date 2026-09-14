@@ -10,22 +10,13 @@ import {
   parseArgs,
   repoRoot,
   resolverPastaEvidencias,
+  resolverUltimaRun,
+  resolverUltimoZip,
 } from './lib/paths.mjs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const catalogo = JSON.parse(fs.readFileSync(path.join(__dirname, 'catalogo-modulos.json'), 'utf8'))
 const produto = catalogo.produto || 'web'
-
-function ultimaRun(pastaBase) {
-  const runsDir = path.join(pastaBase, 'runs')
-  if (!fs.existsSync(runsDir)) return null
-  const runs = fs
-    .readdirSync(runsDir, { withFileTypes: true })
-    .filter((e) => e.isDirectory())
-    .map((e) => e.name)
-    .sort()
-  return runs.length ? path.join(runsDir, runs[runs.length - 1]) : null
-}
 
 function lerArquivoSeExistir(caminho) {
   return fs.existsSync(caminho) ? fs.readFileSync(caminho, 'utf8') : ''
@@ -62,6 +53,13 @@ function gitDiffStat(root) {
   }
   const local = spawnSync('git', ['diff', '--stat', 'HEAD'], { cwd: root, encoding: 'utf8' })
   return { base: 'working tree', stat: local.stdout?.trim() || '(sem diff)' }
+}
+
+function linkZipGithub(zipRel, { repo, branch }) {
+  if (!branch) return null
+  const repoSlug = repo || 'CERTTUS/testes-automatizados-Mural'
+  const caminho = zipRel.replace(/\\/g, '/')
+  return `https://github.com/${repoSlug}/raw/${branch}/${caminho}`
 }
 
 function listarSpecsAlterados(root, diffStat) {
@@ -106,7 +104,15 @@ if (!modulo) {
 const root = repoRoot()
 const parentKey = args.parentKey || args.devKey
 const pastaBase = resolverPastaEvidencias({ devKey: args.devKey, parentKey, root })
-const runDir = ultimaRun(pastaBase)
+const runDir = resolverUltimaRun(pastaBase)
+const zipInfo = resolverUltimoZip(pastaBase)
+const zipRel = zipInfo ? path.relative(root, zipInfo.caminho).replace(/\\/g, '/') : null
+const zipLink = zipRel
+  ? linkZipGithub(zipRel, {
+      repo: args.repo,
+      branch: args.branch || process.env.GITHUB_HEAD_REF || process.env.PRE_CR_GITHUB_BRANCH,
+    })
+  : null
 const meta = runDir ? lerArquivoSeExistir(path.join(runDir, 'meta.md')) : ''
 const veredito = runDir ? extrairVeredito(runDir) : 'NAO_EXECUTADO'
 const npmScript = extrairCampoMeta(meta, 'npm') || 'test:pre-cr'
@@ -185,7 +191,8 @@ ${tabelaCtsDeCenarios(cenariosMd)}
 | Cenários | \`docs/tests/${modulo.slug}/cenarios.md\` |
 | Plano execução | \`docs/tests/${modulo.slug}/resumo-implementacao.md\` |
 | Resultado | \`docs/tests/${modulo.slug}/resultado-pre-cr.md\` |
-${runDir ? `| Run local | \`evidencias-pr/${parentKey}/dev-${args.devKey}/runs/${path.basename(runDir)}/\` *(gitignored)* |` : ''}
+${zipInfo ? `| **Pacote zip** | \`${zipRel}\`${zipLink ? ` — [baixar](${zipLink})` : ''} |` : '| Pacote zip | *(rodar \`npm run pre-cr:empacotar\` antes da PR)* |'}
+${runDir ? `| Run local | \`evidencias-pr/${parentKey}/${args.devKey}/runs/${path.basename(runDir)}/\` *(gitignored)* |` : ''}
 
 ---
 

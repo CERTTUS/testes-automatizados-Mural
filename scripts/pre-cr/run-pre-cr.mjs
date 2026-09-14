@@ -8,15 +8,16 @@ import path from 'node:path'
 import { spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { coletarArtefatosPlaywright } from './lib/coletar-artefatos.mjs'
+import { flattenRunDir } from './lib/provas-run.mjs'
+import { garantirRodada } from './lib/rodada.mjs'
 import { gerarResultadoExecucaoDev } from './lib/gerar-resultado-execucao.mjs'
 import { executarSpecsPlaywright } from './lib/executar-specs.mjs'
 import {
-  formatTimestamp,
-  garantirDir,
+  limparRunDir,
   parseArgs,
-  pastaRun,
   repoRoot,
   resolverPastaEvidencias,
+  resolverRunDir,
 } from './lib/paths.mjs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -28,7 +29,7 @@ function ajuda() {
   console.log(`
 QA_PRE_CR — ${produto} (Playwright)
 
-  node scripts/pre-cr/run-pre-cr.mjs --modulo <slug> --dev-key <ISSUE> [--parent-key <HU>]
+  node scripts/pre-cr/run-pre-cr.mjs --modulo <slug> --dev-key <ISSUE> --parent-key <HU>
 
 Modulos: npm run pre-cr:modulos
 `)
@@ -76,14 +77,25 @@ const usarSpecs = Array.isArray(modulo.specs) && modulo.specs.length > 0 && !mod
 const projetos = modulo.playwrightProjects || projetosPadrao
 
 const root = repoRoot()
+
+if (args.parentKey) {
+  garantirRodada({
+    root,
+    parentKey: args.parentKey,
+    devKey: args.devKey,
+    modulo,
+    produto,
+  })
+}
+
 const pastaBase = resolverPastaEvidencias({
   devKey: args.devKey,
   parentKey: args.parentKey,
   prNumber: args.prNumber,
   root,
 })
-const runId = formatTimestamp()
-const runDir = garantirDir(pastaRun(pastaBase, runId))
+const runDir = resolverRunDir(pastaBase)
+limparRunDir(runDir)
 
 console.log(`[pre-cr] Produto: ${produto}`)
 console.log(`[pre-cr] Modulo: ${modulo.slug}`)
@@ -125,6 +137,7 @@ if (usarSpecs) {
 }
 
 const artefatos = coletarArtefatosPlaywright(runDir)
+flattenRunDir(runDir)
 escreverMeta(runDir, {
   devKey: args.devKey,
   prNumber: args.prNumber,

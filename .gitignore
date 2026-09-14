@@ -29,8 +29,11 @@ Thumbs.db
 # Cursor IDE (config e logs locais)
 .cursor/
 
-# QA_PRE_CR
+# QA_PRE_CR (runs locais gitignored; zips versionados na PR)
 evidencias-pr/*
 !evidencias-pr/README.md
+!evidencias-pr/**/
+!evidencias-pr/**/zips/
+!evidencias-pr/**/zips/*.zip
 docs/tests/**
 !docs/tests/README.md
