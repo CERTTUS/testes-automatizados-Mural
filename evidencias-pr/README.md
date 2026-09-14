@@ -14,8 +14,10 @@ evidencias-pr/
           resultado-execucao-dev.md
           evidencias/
       zips/
-        harness-qa-pre-cr-<devKey>-<YYYY-MM-DD_HH-mm-ss>.zip
+        harness-qa-pre-cr-<devKey>-<YYYY-MM-DD_HH-mm-ss>.zip   # versionado na PR de testes
 ```
+
+O zip gerado por `pre-cr:empacotar` entra no commit da PR (link no corpo gerado por `pre-cr:corpo-pr`).
 
 Iniciar pastas no começo do ciclo:
 

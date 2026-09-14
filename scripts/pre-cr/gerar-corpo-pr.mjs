@@ -10,6 +10,7 @@ import {
   parseArgs,
   repoRoot,
   resolverPastaEvidencias,
+  resolverUltimoZip,
 } from './lib/paths.mjs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -64,6 +65,13 @@ function gitDiffStat(root) {
   return { base: 'working tree', stat: local.stdout?.trim() || '(sem diff)' }
 }
 
+function linkZipGithub(zipRel, { repo, branch }) {
+  if (!branch) return null
+  const repoSlug = repo || 'CERTTUS/testes-automatizados-Mural'
+  const caminho = zipRel.replace(/\\/g, '/')
+  return `https://github.com/${repoSlug}/raw/${branch}/${caminho}`
+}
+
 function listarSpecsAlterados(root, diffStat) {
   const linhas = diffStat.split('\n').filter((l) => /\.(ts|tsx|js|mjs|md)$/.test(l))
   return linhas
@@ -107,6 +115,14 @@ const root = repoRoot()
 const parentKey = args.parentKey || args.devKey
 const pastaBase = resolverPastaEvidencias({ devKey: args.devKey, parentKey, root })
 const runDir = ultimaRun(pastaBase)
+const zipInfo = resolverUltimoZip(pastaBase)
+const zipRel = zipInfo ? path.relative(root, zipInfo.caminho).replace(/\\/g, '/') : null
+const zipLink = zipRel
+  ? linkZipGithub(zipRel, {
+      repo: args.repo,
+      branch: args.branch || process.env.GITHUB_HEAD_REF || process.env.PRE_CR_GITHUB_BRANCH,
+    })
+  : null
 const meta = runDir ? lerArquivoSeExistir(path.join(runDir, 'meta.md')) : ''
 const veredito = runDir ? extrairVeredito(runDir) : 'NAO_EXECUTADO'
 const npmScript = extrairCampoMeta(meta, 'npm') || 'test:pre-cr'
@@ -185,7 +201,8 @@ ${tabelaCtsDeCenarios(cenariosMd)}
 | Cenários | \`docs/tests/${modulo.slug}/cenarios.md\` |
 | Plano execução | \`docs/tests/${modulo.slug}/resumo-implementacao.md\` |
 | Resultado | \`docs/tests/${modulo.slug}/resultado-pre-cr.md\` |
-${runDir ? `| Run local | \`evidencias-pr/${parentKey}/dev-${args.devKey}/runs/${path.basename(runDir)}/\` *(gitignored)* |` : ''}
+${zipInfo ? `| **Pacote zip** | \`${zipRel}\`${zipLink ? ` — [baixar](${zipLink})` : ''} |` : '| Pacote zip | *(rodar \`npm run pre-cr:empacotar\` antes da PR)* |'}
+${runDir ? `| Run local | \`evidencias-pr/${parentKey}/${args.devKey}/runs/${path.basename(runDir)}/\` *(gitignored)* |` : ''}
 
 ---
 

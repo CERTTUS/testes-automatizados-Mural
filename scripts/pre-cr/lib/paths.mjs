@@ -55,6 +55,21 @@ export function resolverPastaZips(pastaBase) {
   return path.join(pastaBase, 'zips')
 }
 
+/** Último zip gerado em evidencias-pr/<parent>/<dev>/zips/. */
+export function resolverUltimoZip(pastaBase) {
+  const zipsDir = resolverPastaZips(pastaBase)
+  if (!fs.existsSync(zipsDir)) return null
+  const zips = fs
+    .readdirSync(zipsDir)
+    .filter((nome) => nome.endsWith('.zip'))
+    .map((nome) => {
+      const caminho = path.join(zipsDir, nome)
+      return { nome, caminho, mtime: fs.statSync(caminho).mtimeMs }
+    })
+    .sort((a, b) => a.mtime - b.mtime)
+  return zips.length ? zips[zips.length - 1] : null
+}
+
 export function pastaRun(pastaBase, runId = formatTimestamp()) {
   return path.join(pastaBase, 'runs', runId)
 }
