@@ -1,3 +1,3 @@
 # Specs E2E — Mural
 
-A primeira Dev cria a pasta da área (ex.: `specs/sugestoes/`) via `pre-cr:bootstrap`. Não invente suíte completa aqui.
+Área `descricao-sugestao`: API + smoke + E2E da entrega IN-884 (limite 2000 e preview expandível).

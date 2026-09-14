@@ -3,5 +3,19 @@
   "versao": 1,
   "produto": "mural",
   "playwrightProjects": ["chromium"],
-  "modulos": []
+  "modulos": [
+    {
+      "slug": "descricao-sugestao",
+      "label": "Descrição sugestão",
+      "docs": "docs/tests/descricao-sugestao",
+      "specs": [
+        "tests/e2e/specs/descricao-sugestao/api.spec.ts",
+        "tests/e2e/specs/descricao-sugestao/smoke.spec.ts",
+        "tests/e2e/specs/descricao-sugestao/e2e-feliz.spec.ts",
+        "tests/e2e/specs/descricao-sugestao/e2e-negativo.spec.ts"
+      ],
+      "geradoNaDev": false,
+      "match": ["descricao-sugestao", "IN-884", "IN-891"]
+    }
+  ]
 }
