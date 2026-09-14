@@ -15,6 +15,7 @@ import {
   parseArgs,
   repoRoot,
 } from './lib/paths.mjs'
+import { flattenRunDir } from './lib/provas-run.mjs'
 
 function ajuda() {
   console.log(`
@@ -24,6 +25,7 @@ Organiza pastas de run em evidencias-pr/.
 
   - Cria runs/atual/ (pasta única da execução)
   - Move runs antigas → runs/historico/<YYYY-MM-DD_HH-mm>
+  - Unifica provas na raiz da run (sem subpastas)
   - Remove pastas dev-* já migradas
 `)
 }
@@ -32,24 +34,30 @@ function temConteudoUtil(dir) {
   if (!fs.existsSync(dir)) return false
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
     if (entry.isFile()) return true
-    const full = path.join(dir, entry.name)
-    if (entry.isDirectory() && entry.name === 'evidencias') {
-      const arquivos = []
-      const walk = (d) => {
-        for (const e of fs.readdirSync(d, { withFileTypes: true })) {
-          const f = path.join(d, e.name)
-          if (e.isDirectory()) walk(f)
-          else arquivos.push(f)
-        }
-      }
-      walk(full)
-      if (arquivos.length > 0) return true
-    }
-    if (entry.isDirectory() && entry.name !== 'evidencias') {
-      if (temConteudoUtil(full)) return true
+    if (entry.isDirectory() && !['historico'].includes(entry.name)) {
+      if (temConteudoUtil(path.join(dir, entry.name))) return true
     }
   }
   return false
+}
+
+function unificarTodasRuns(pastaDev, dryRun) {
+  const runsDir = path.join(pastaDev, 'runs')
+  if (!fs.existsSync(runsDir)) return 0
+
+  let total = 0
+  const atual = path.join(runsDir, RUN_ATUAL)
+  if (!dryRun && fs.existsSync(atual)) total += flattenRunDir(atual)
+
+  const historico = path.join(runsDir, 'historico')
+  if (fs.existsSync(historico)) {
+    for (const entry of fs.readdirSync(historico, { withFileTypes: true })) {
+      if (!entry.isDirectory()) continue
+      if (!dryRun) total += flattenRunDir(path.join(historico, entry.name))
+    }
+  }
+
+  return total
 }
 
 function destinoSemColisao(pasta, nome) {
@@ -140,8 +148,20 @@ for (const parent of fs.readdirSync(base, { withFileTypes: true })) {
 
 alteracoes.push(...removerDevVazias(root, dryRun))
 
-if (alteracoes.length === 0) {
-  console.log('[pre-cr] Estrutura já organizada (runs/atual + historico).')
+let unificados = 0
+if (!dryRun) {
+  for (const parent of fs.readdirSync(base, { withFileTypes: true })) {
+    if (!parent.isDirectory()) continue
+    const parentDir = path.join(base, parent.name)
+    for (const child of fs.readdirSync(parentDir, { withFileTypes: true })) {
+      if (!child.isDirectory()) continue
+      unificados += unificarTodasRuns(path.join(parentDir, child.name), dryRun)
+    }
+  }
+}
+
+if (alteracoes.length === 0 && unificados === 0) {
+  console.log('[pre-cr] Estrutura já organizada (runs/atual plana).')
   process.exit(0)
 }
 
@@ -155,4 +175,7 @@ for (const item of alteracoes) {
   }
 }
 
+if (unificados > 0) {
+  console.log(`[pre-cr] ${unificados} arquivo(s) unificado(s) na raiz das runs`)
+}
 console.log(`[pre-cr] Concluído — ${alteracoes.length} ação(ões)`)

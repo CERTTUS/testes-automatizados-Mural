@@ -1,41 +1,6 @@
 import fs from 'node:fs'
 import path from 'node:path'
-
-const EXT_PROVA = ['.png', '.json', '.xml', '.webm', '.zip', '.md']
-
-function listarArquivos(dir, acc = []) {
-  if (!fs.existsSync(dir)) return acc
-  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-    const full = path.join(dir, entry.name)
-    if (entry.isDirectory()) listarArquivos(full, acc)
-    else acc.push(full)
-  }
-  return acc
-}
-
-function encontrarProva(runDir, ctId) {
-  const evidencias = path.join(runDir, 'evidencias')
-  const jestDir = path.join(runDir, 'jest')
-  const todos = [...listarArquivos(evidencias), ...listarArquivos(jestDir)]
-
-  const prefixo = ctId.toUpperCase()
-  for (const arquivo of todos) {
-    const base = path.basename(arquivo)
-    if (!base.toUpperCase().includes(prefixo)) continue
-    if (EXT_PROVA.some((ext) => base.toLowerCase().endsWith(ext))) {
-      return path.relative(runDir, arquivo).replace(/\\/g, '/')
-    }
-  }
-
-  if (prefixo.startsWith('CT-UNIT') || prefixo.startsWith('CT-JEST')) {
-    for (const nome of ['junit.xml', 'resultado.json', 'resultado-validacao.json', 'run.log']) {
-      const p = path.join(jestDir, nome)
-      if (fs.existsSync(p)) return `jest/${nome}`
-    }
-  }
-
-  return null
-}
+import { encontrarProvaRun, listarProvasRun } from './provas-run.mjs'
 
 /**
  * Valida evidências mínimas por CT (PASS exige prova).
@@ -49,22 +14,17 @@ export function validarEvidenciasPreCr(runDir, opts = {}) {
 
   for (const ct of cts) {
     if (ct.status && ct.status !== 'PASSOU' && ct.status !== 'passed') continue
-    const prova = encontrarProva(runDir, ct.id)
+    const prova = encontrarProvaRun(runDir, ct.id)
     if (!prova) {
       faltando.push({
         ct: ct.id,
-        motivo: 'PASSOU sem screenshot, JSON, junit ou log rastreável',
+        motivo: 'PASSOU sem screenshot, JSON, vídeo ou log rastreável',
       })
     }
   }
 
-  if (cts.length === 0) {
-    const temAlgumArtefato =
-      listarArquivos(path.join(runDir, 'evidencias')).length > 0 ||
-      listarArquivos(path.join(runDir, 'jest')).length > 0
-    if (!temAlgumArtefato) {
-      faltando.push({ ct: '(geral)', motivo: 'run sem pasta evidencias/ ou jest/' })
-    }
+  if (cts.length === 0 && listarProvasRun(runDir).length === 0) {
+    faltando.push({ ct: '(geral)', motivo: 'run sem arquivos de prova por CT' })
   }
 
   return { ok: faltando.length === 0, faltando }

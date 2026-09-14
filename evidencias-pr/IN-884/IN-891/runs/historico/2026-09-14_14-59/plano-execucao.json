@@ -1,0 +1,119 @@
+{
+  "schema": "qa-pre-cr-plano-execucao",
+  "devKey": "IN-891",
+  "parentKey": "IN-884",
+  "modulo": "descricao-sugestao",
+  "produto": "mural",
+  "ambiente": "local",
+  "npmScript": "test:pre-cr (specs)",
+  "comando": "npm run test:pre-cr (specs) -- --modulo descricao-sugestao --dev-key IN-891 --parent-key IN-884",
+  "veredito": "REPROVOU",
+  "resumoHumano": [
+    "CT-API-01 — Criar sugestão com descrição no teto de 2000 caracteres",
+    "CT-API-02 — Recusar criação com descrição de 2001 caracteres",
+    "CT-API-03 — Recusar criação com descrição só de espaços",
+    "CT-API-04 — Recusar criação sem o campo descrição",
+    "CT-API-05 — Atualizar sugestão com descrição no teto de 2000 caracteres",
+    "CT-API-06 — Recusar atualização com descrição de 2001 caracteres",
+    "CT-SMK-01 — Abrir o mural autenticado e ver a listagem",
+    "CT-SMK-02 — Abrir nova sugestão e ver o contador 0/2000"
+  ],
+  "executadoEm": "2026-09-14T17:59:11.108Z",
+  "cts": [
+    {
+      "id": "CT-API-01",
+      "tipo": "api",
+      "prova": null
+    },
+    {
+      "id": "CT-API-02",
+      "tipo": "api",
+      "prova": null
+    },
+    {
+      "id": "CT-API-03",
+      "tipo": "api",
+      "prova": null
+    },
+    {
+      "id": "CT-API-04",
+      "tipo": "api",
+      "prova": null
+    },
+    {
+      "id": "CT-API-05",
+      "tipo": "api",
+      "prova": null
+    },
+    {
+      "id": "CT-API-06",
+      "tipo": "api",
+      "prova": null
+    },
+    {
+      "id": "CT-SMK",
+      "tipo": "smoke",
+      "prova": null
+    },
+    {
+      "id": "CT-SMK-01",
+      "tipo": "smoke",
+      "prova": null
+    },
+    {
+      "id": "CT-SMK-02",
+      "tipo": "smoke",
+      "prova": null
+    },
+    {
+      "id": "CT-E2E",
+      "tipo": "outro",
+      "prova": null
+    },
+    {
+      "id": "CT-E2E-01",
+      "tipo": "outro",
+      "prova": null
+    },
+    {
+      "id": "CT-E2E-02",
+      "tipo": "outro",
+      "prova": null
+    },
+    {
+      "id": "CT-E2E-03",
+      "tipo": "outro",
+      "prova": null
+    },
+    {
+      "id": "CT-E2E-04",
+      "tipo": "outro",
+      "prova": null
+    },
+    {
+      "id": "CT-E2E-05",
+      "tipo": "outro",
+      "prova": null
+    },
+    {
+      "id": "CT-E2E-06",
+      "tipo": "outro",
+      "prova": null
+    },
+    {
+      "id": "CT-E2E-07",
+      "tipo": "outro",
+      "prova": null
+    },
+    {
+      "id": "CT-E2E-08",
+      "tipo": "outro",
+      "prova": null
+    },
+    {
+      "id": "CT-MAN-01",
+      "tipo": "manual",
+      "prova": null
+    }
+  ]
+}

@@ -2,8 +2,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import type {TestInfo} from '@playwright/test';
 
-/** Pasta plana: PRE_CR_RUN_DIR/evidencias/ (sem subpastas por tipo). */
-export function pastaEvidenciasRun(): string | null {
+/** Raiz da run: runs/atual/ — uma pasta, arquivos por CT. */
+export function pastaProvasRun(): string | null {
    if (process.env.PRE_CR !== '1') {
       return null;
    }
@@ -11,17 +11,16 @@ export function pastaEvidenciasRun(): string | null {
    if (!runDir) {
       return null;
    }
-   const dir = path.join(runDir, 'evidencias');
-   fs.mkdirSync(dir, {recursive: true});
-   return dir;
+   fs.mkdirSync(runDir, {recursive: true});
+   return runDir;
 }
 
-/** Grava prova em evidencias/<arquivo> */
+/** Grava prova na raiz da run (ex.: CT-SMK-01-tela-final.png). */
 export function gravarArquivoEvidenciaPreCr(
    nomeArquivo: string,
    conteudo: Buffer | string,
 ): string | null {
-   const dir = pastaEvidenciasRun();
+   const dir = pastaProvasRun();
    if (!dir) {
       return null;
    }
@@ -30,7 +29,6 @@ export function gravarArquivoEvidenciaPreCr(
    return dest;
 }
 
-/** Registra CT → artefatos para o coletor mapear vídeo após a suíte. */
 export function registrarCtManifest(
    ctId: string,
    artefatos: {
@@ -40,7 +38,7 @@ export function registrarCtManifest(
       outputDir?: string | null;
    },
 ): void {
-   const dir = pastaEvidenciasRun();
+   const dir = pastaProvasRun();
    if (!dir) {
       return;
    }
@@ -61,7 +59,6 @@ export function caminhoRelativoRun(caminhoAbsoluto: string | null): string | nul
    return path.relative(runDir, caminhoAbsoluto).replace(/\\/g, '/');
 }
 
-/** Caminho da pasta do teste em test-results/ (relativo à raiz do repo). */
 export function outputDirRelativo(testInfo: TestInfo): string | null {
    return path.relative(process.cwd(), testInfo.outputDir).replace(/\\/g, '/');
 }

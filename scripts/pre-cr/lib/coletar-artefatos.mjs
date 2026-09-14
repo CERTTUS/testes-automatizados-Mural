@@ -1,19 +1,10 @@
 import fs from 'node:fs'
 import path from 'node:path'
+import { ehArquivoProvaCt } from './provas-run.mjs'
 import { repoRoot } from './paths.mjs'
 
-function listarArquivos(dir, acc = []) {
-  if (!fs.existsSync(dir)) return acc
-  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-    const full = path.join(dir, entry.name)
-    if (entry.isDirectory()) listarArquivos(full, acc)
-    else acc.push(full)
-  }
-  return acc
-}
-
 function lerManifest(runDir) {
-  const manifestPath = path.join(runDir, 'evidencias', 'manifest-cts.jsonl')
+  const manifestPath = path.join(runDir, 'manifest-cts.jsonl')
   if (!fs.existsSync(manifestPath)) return []
   const porCt = new Map()
   for (const linha of fs.readFileSync(manifestPath, 'utf8').split('\n')) {
@@ -25,7 +16,7 @@ function lerManifest(runDir) {
         porCt.set(entrada.ctId, { ...porCt.get(entrada.ctId), ...entrada })
       }
     } catch {
-      /* ignora linha inválida */
+      /* ignora */
     }
   }
   return [...porCt.values()]
@@ -38,9 +29,7 @@ function copiarSeExistir(origem, destino, copiados, label) {
   copiados.push(label)
 }
 
-/** Copia só vídeos nomeados por CT — sem pastas do Playwright. */
 function coletarVideosPorCt(runDir, root, copiados) {
-  const evidenciasDir = path.join(runDir, 'evidencias')
   const testResults = path.join(root, 'test-results')
   const manifest = lerManifest(runDir)
 
@@ -49,7 +38,7 @@ function coletarVideosPorCt(runDir, root, copiados) {
     if (!ctId || !entrada.outputDir) continue
 
     const pastaTeste = path.join(root, entrada.outputDir)
-    const destino = path.join(evidenciasDir, `${ctId}-gravacao.webm`)
+    const destino = path.join(runDir, `${ctId}-gravacao.webm`)
 
     copiarSeExistir(
       path.join(pastaTeste, 'video.webm'),
@@ -65,22 +54,13 @@ function coletarVideosPorCt(runDir, root, copiados) {
   }
 }
 
-function contarEvidenciasLocais(runDir) {
-  const evidenciasDir = path.join(runDir, 'evidencias')
-  if (!fs.existsSync(evidenciasDir)) return 0
-  return listarArquivos(evidenciasDir).filter((f) => {
-    const base = path.basename(f).toLowerCase()
-    return (
-      base.endsWith('.png') ||
-      base.endsWith('.json') ||
-      base.endsWith('.webm')
-    )
-  }).length
+function contarProvasLocais(runDir) {
+  if (!fs.existsSync(runDir)) return 0
+  return fs.readdirSync(runDir).filter((nome) => ehArquivoProvaCt(nome)).length
 }
 
 /**
- * Coleta mínima pós-run: só arquivos por CT em evidencias/ (plano).
- * Não copia html-report nem árvore test-results.
+ * Coleta vídeos na raiz da run (mesma pasta das fotos e JSONs).
  * @param {string} runDir
  * @returns {string[]}
  */
@@ -88,9 +68,9 @@ export function coletarArtefatosPlaywright(runDir) {
   const root = repoRoot()
   const copiados = []
 
-  const locais = contarEvidenciasLocais(runDir)
+  const locais = contarProvasLocais(runDir)
   if (locais > 0) {
-    copiados.push(`evidencias/ (${locais} arquivo(s) por CT)`)
+    copiados.push(`run/ (${locais} prova(s) por CT)`)
   }
 
   coletarVideosPorCt(runDir, root, copiados)

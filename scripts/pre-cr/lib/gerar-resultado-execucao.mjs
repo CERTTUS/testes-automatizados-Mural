@@ -1,40 +1,6 @@
 import fs from 'node:fs'
 import path from 'node:path'
-
-const EXT_PROVA = ['.png', '.json', '.xml', '.webm']
-
-function listarArquivos(dir, acc = []) {
-  if (!fs.existsSync(dir)) return acc
-  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-    const full = path.join(dir, entry.name)
-    if (entry.isDirectory()) listarArquivos(full, acc)
-    else acc.push(full)
-  }
-  return acc
-}
-
-function encontrarProva(runDir, ctId) {
-  const pastas = [path.join(runDir, 'evidencias'), path.join(runDir, 'jest')]
-  const prefixo = ctId.toUpperCase()
-  const todos = pastas.flatMap((p) => listarArquivos(p))
-
-  for (const arquivo of todos) {
-    const base = path.basename(arquivo)
-    if (!base.toUpperCase().includes(prefixo)) continue
-    if (EXT_PROVA.some((ext) => base.toLowerCase().endsWith(ext))) {
-      return path.relative(runDir, arquivo).replace(/\\/g, '/')
-    }
-  }
-
-  if (prefixo.startsWith('CT-UNIT') || prefixo.startsWith('CT-JEST') || prefixo.startsWith('CEN-UNIT')) {
-    for (const nome of ['junit.xml', 'resultado.json', 'resultado-validacao.json', 'run.log']) {
-      const p = path.join(runDir, 'jest', nome)
-      if (fs.existsSync(p)) return `jest/${nome}`
-    }
-  }
-
-  return null
-}
+import { encontrarProvaRun } from './provas-run.mjs'
 
 function extrairIdsCenarios(cenariosMd) {
   const ids = new Set()
@@ -94,7 +60,7 @@ export function gerarResultadoExecucaoDev({
       linhasEvidencia.push(`| ${id} | manual | ○ | — |`)
       continue
     }
-    const prova = encontrarProva(runDir, id)
+    const prova = encontrarProvaRun(runDir, id)
     const status = veredito === 'PASSOU' && prova ? 'PASSOU' : veredito === 'PASSOU' ? 'SEM_PROVA' : 'REPROVOU'
     if (status === 'PASSOU') {
       porTipo[tipo] = (porTipo[tipo] ?? 0) + 1
@@ -170,7 +136,7 @@ export function gerarResultadoExecucaoDev({
     cts: ids.map((id) => ({
       id,
       tipo: inferirTipo(id),
-      prova: encontrarProva(runDir, id),
+      prova: encontrarProvaRun(runDir, id),
     })),
   }
 
