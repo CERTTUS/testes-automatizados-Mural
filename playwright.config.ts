@@ -59,19 +59,10 @@ export default defineConfig({
       navigationTimeout: 45_000,
    },
    projects: [
-      ...(L_PRE_CR
-         ? [
-              {
-                 name: 'pre-cr-setup',
-                 testMatch: '**/helpers/pre-cr/pre-cr.setup.ts',
-              },
-           ]
-         : []),
       {
          name: 'chromium',
          testMatch: '**/specs/**/*.spec.ts',
          use: useNavegadorE2e(),
-         dependencies: L_PRE_CR ? ['pre-cr-setup'] : [],
       },
    ],
 });

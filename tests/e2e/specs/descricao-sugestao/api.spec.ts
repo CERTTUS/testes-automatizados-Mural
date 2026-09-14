@@ -1,4 +1,4 @@
-import {expect, test} from '@playwright/test';
+import {expect, test} from '../../fixtures';
 import {
    atualizarSugestaoApi,
    autenticarApi,
@@ -10,6 +10,7 @@ import {
    type oSugestaoCriada,
 } from '../../helpers/api';
 import {E2E_API_BASE_URL, N_DESCRICAO_SUGESTAO_MAX} from '../../helpers/env';
+import {evidenciarApiPreCr} from '../../helpers/pre-cr/evidenciarApiPreCr';
 
 test.describe('API — limite da descrição (IN-884)', () => {
    let cToken: string;
@@ -45,14 +46,16 @@ test.describe('API — limite da descrição (IN-884)', () => {
 
    test('CT-API-01 — Criar sugestão com descrição no teto de 2000 caracteres', async ({
       request,
-   }) => {
+   }, testInfo) => {
       const oRes = await criarSugestaoApi(
          request,
          cToken,
          oPayloadBase('A'.repeat(N_DESCRICAO_SUGESTAO_MAX), 'teto'),
       );
-      expect(oRes.status(), await oRes.text()).toBe(201);
-      const oBody = (await oRes.json()) as oSugestaoCriada;
+      const cTexto = await oRes.text();
+      await evidenciarApiPreCr(testInfo, 'CT-API-01', oRes.status(), oRes.url(), cTexto);
+      expect(oRes.status(), cTexto).toBe(201);
+      const oBody = JSON.parse(cTexto) as oSugestaoCriada;
       expect(oBody.sugestao).toBeTruthy();
       expect(oBody.descricao).toHaveLength(N_DESCRICAO_SUGESTAO_MAX);
       mLimpar.push(Number(oBody.sugestao));
@@ -60,60 +63,65 @@ test.describe('API — limite da descrição (IN-884)', () => {
 
    test('CT-API-02 — Recusar criação com descrição de 2001 caracteres', async ({
       request,
-   }) => {
+   }, testInfo) => {
       const oRes = await criarSugestaoApi(
          request,
          cToken,
          oPayloadBase('A'.repeat(N_DESCRICAO_SUGESTAO_MAX + 1), 'acima'),
       );
+      const cTexto = await oRes.text();
+      await evidenciarApiPreCr(testInfo, 'CT-API-02', oRes.status(), oRes.url(), cTexto);
       expect(oRes.status()).toBe(400);
-      const oBody = (await oRes.json()) as {erro?: boolean; mensagem?: string};
+      const oBody = JSON.parse(cTexto) as {erro?: boolean; mensagem?: string};
       expect(oBody.erro).toBe(true);
       expect(oBody.mensagem).toBe('A descrição deve ter no máximo 2000 caracteres.');
    });
 
-   test('CT-API-03 — Recusar criação com descrição só de espaços', async ({request}) => {
+   test('CT-API-03 — Recusar criação com descrição só de espaços', async ({request}, testInfo) => {
       const oRes = await criarSugestaoApi(
          request,
          cToken,
          oPayloadBase('     ', 'vazia'),
       );
+      const cTexto = await oRes.text();
+      await evidenciarApiPreCr(testInfo, 'CT-API-03', oRes.status(), oRes.url(), cTexto);
       expect(oRes.status()).toBe(400);
-      const oBody = (await oRes.json()) as {erro?: boolean; mensagem?: string};
+      const oBody = JSON.parse(cTexto) as {erro?: boolean; mensagem?: string};
       expect(oBody.erro).toBe(true);
       expect(oBody.mensagem).toBe('A descrição não pode estar vazia.');
    });
 
-   test('CT-API-04 — Recusar criação sem o campo descrição', async ({request}) => {
-      const oRes = await request.post(`${E2E_API_BASE_URL}/sugestoes`,
-         {
-            headers: {
-               Authorization: `Bearer ${cToken}`,
-               'Content-Type': 'application/json',
-            },
-            data: {
-               titulo: `QA-API sem-desc ${Date.now()}`.slice(0, 100),
-               produto: nProduto,
-               pilarGestao: nPilar,
-            },
+   test('CT-API-04 — Recusar criação sem o campo descrição', async ({request}, testInfo) => {
+      const oRes = await request.post(`${E2E_API_BASE_URL}/sugestoes`, {
+         headers: {
+            Authorization: `Bearer ${cToken}`,
+            'Content-Type': 'application/json',
          },
-      );
+         data: {
+            titulo: `QA-API sem-desc ${Date.now()}`.slice(0, 100),
+            produto: nProduto,
+            pilarGestao: nPilar,
+         },
+      });
+      const cTexto = await oRes.text();
+      await evidenciarApiPreCr(testInfo, 'CT-API-04', oRes.status(), oRes.url(), cTexto);
       expect(oRes.status()).toBe(400);
-      const oBody = (await oRes.json()) as {erro?: boolean; mensagem?: string};
+      const oBody = JSON.parse(cTexto) as {erro?: boolean; mensagem?: string};
       expect(oBody.erro).toBe(true);
       expect(oBody.mensagem).toBe('A descrição é obrigatória.');
    });
 
    test('CT-API-05 — Atualizar sugestão com descrição no teto de 2000 caracteres', async ({
       request,
-   }) => {
+   }, testInfo) => {
       const oCriadaRes = await criarSugestaoApi(
          request,
          cToken,
          oPayloadBase('descricao inicial api-05', 'upd-teto'),
       );
+      const cCriadaTexto = await oCriadaRes.text();
       expect(oCriadaRes.status()).toBe(201);
-      const oCriada = (await oCriadaRes.json()) as oSugestaoCriada;
+      const oCriada = JSON.parse(cCriadaTexto) as oSugestaoCriada;
       mLimpar.push(Number(oCriada.sugestao));
 
       const oRes = await atualizarSugestaoApi(request, cToken, Number(oCriada.sugestao), {
@@ -123,7 +131,9 @@ test.describe('API — limite da descrição (IN-884)', () => {
          pilarGestao: oCriada.pilarGestao?.id ?? nPilar,
          situacao: oCriada.situacao?.id ?? 2,
       });
-      expect(oRes.status(), await oRes.text()).toBe(200);
+      const cTexto = await oRes.text();
+      await evidenciarApiPreCr(testInfo, 'CT-API-05', oRes.status(), oRes.url(), cTexto);
+      expect(oRes.status(), cTexto).toBe(200);
       const oConsulta = await consultarSugestaoApi(request, cToken, Number(oCriada.sugestao));
       const oAtual = (await oConsulta.json()) as oSugestaoCriada;
       expect(oAtual.descricao).toHaveLength(N_DESCRICAO_SUGESTAO_MAX);
@@ -131,14 +141,15 @@ test.describe('API — limite da descrição (IN-884)', () => {
 
    test('CT-API-06 — Recusar atualização com descrição de 2001 caracteres', async ({
       request,
-   }) => {
+   }, testInfo) => {
       const oCriadaRes = await criarSugestaoApi(
          request,
          cToken,
          oPayloadBase('descricao inicial api-06', 'upd-acima'),
       );
+      const cCriadaTexto = await oCriadaRes.text();
       expect(oCriadaRes.status()).toBe(201);
-      const oCriada = (await oCriadaRes.json()) as oSugestaoCriada;
+      const oCriada = JSON.parse(cCriadaTexto) as oSugestaoCriada;
       mLimpar.push(Number(oCriada.sugestao));
 
       const oRes = await atualizarSugestaoApi(request, cToken, Number(oCriada.sugestao), {
@@ -148,8 +159,10 @@ test.describe('API — limite da descrição (IN-884)', () => {
          pilarGestao: oCriada.pilarGestao?.id ?? nPilar,
          situacao: oCriada.situacao?.id ?? 2,
       });
+      const cTexto = await oRes.text();
+      await evidenciarApiPreCr(testInfo, 'CT-API-06', oRes.status(), oRes.url(), cTexto);
       expect(oRes.status()).toBe(400);
-      const oBody = (await oRes.json()) as {erro?: boolean; mensagem?: string};
+      const oBody = JSON.parse(cTexto) as {erro?: boolean; mensagem?: string};
       expect(oBody.erro).toBe(true);
       expect(oBody.mensagem).toBe('A descrição deve ter no máximo 2000 caracteres.');
    });

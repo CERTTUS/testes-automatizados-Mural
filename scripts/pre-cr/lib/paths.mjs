@@ -9,12 +9,29 @@ export function repoRoot() {
   return path.resolve(__dirname, '../../..')
 }
 
-export function formatTimestamp(date = new Date()) {
+/** Data/hora legível para pastas (ex.: 2026-09-14_15-09-11). */
+export function formatTimestampLegivel(date = new Date()) {
   const pad = (n) => String(n).padStart(2, '0')
   return (
-    `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}-` +
-    `${pad(date.getHours())}${pad(date.getMinutes())}${pad(date.getSeconds())}`
+    `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}_` +
+    `${pad(date.getHours())}-${pad(date.getMinutes())}-${pad(date.getSeconds())}`
   )
+}
+
+/** Nome da pasta de execução: data legível + módulo. */
+export function formatRunId(moduloSlug, date = new Date()) {
+  const cBase = formatTimestampLegivel(date)
+  const cSlug = String(moduloSlug || 'run')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9-]+/g, '-')
+    .replace(/^-|-$/g, '')
+  return cSlug ? `${cBase}-${cSlug}` : cBase
+}
+
+/** Compacto para arquivos (zip, staging). */
+export function formatTimestamp(date = new Date()) {
+  return formatTimestampLegivel(date)
 }
 
 /**
@@ -25,7 +42,10 @@ export function resolverPastaEvidencias({ devKey, parentKey, prNumber, root = re
   const base = path.join(root, 'evidencias-pr')
   if (prNumber) return path.join(base, `PR-${prNumber}`)
   if (parentKey && devKey) {
-    return path.join(base, parentKey, `dev-${devKey}`)
+    return path.join(base, parentKey, devKey)
+  }
+  if (parentKey) {
+    return path.join(base, parentKey)
   }
   if (devKey) return path.join(base, devKey)
   throw new Error('Informe --dev-key <ISSUE> (e --parent-key <HU> quando possível) ou --pr <número>')

@@ -11,7 +11,7 @@ import { coletarArtefatosPlaywright } from './lib/coletar-artefatos.mjs'
 import { gerarResultadoExecucaoDev } from './lib/gerar-resultado-execucao.mjs'
 import { executarSpecsPlaywright } from './lib/executar-specs.mjs'
 import {
-  formatTimestamp,
+  formatRunId,
   garantirDir,
   parseArgs,
   pastaRun,
@@ -28,7 +28,7 @@ function ajuda() {
   console.log(`
 QA_PRE_CR — ${produto} (Playwright)
 
-  node scripts/pre-cr/run-pre-cr.mjs --modulo <slug> --dev-key <ISSUE> [--parent-key <HU>]
+  node scripts/pre-cr/run-pre-cr.mjs --modulo <slug> --dev-key <ISSUE> --parent-key <HU>
 
 Modulos: npm run pre-cr:modulos
 `)
@@ -82,7 +82,7 @@ const pastaBase = resolverPastaEvidencias({
   prNumber: args.prNumber,
   root,
 })
-const runId = formatTimestamp()
+const runId = formatRunId(modulo.slug)
 const runDir = garantirDir(pastaRun(pastaBase, runId))
 
 console.log(`[pre-cr] Produto: ${produto}`)
