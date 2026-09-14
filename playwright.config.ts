@@ -1,0 +1,77 @@
+import {defineConfig, devices} from '@playwright/test';
+import fs from 'node:fs';
+import path from 'node:path';
+
+function carregarArquivoEnv(cNomeArquivo: string): void {
+   const cCaminho = path.resolve(process.cwd(), cNomeArquivo);
+   if (!fs.existsSync(cCaminho)) {
+      return;
+   }
+   for (const cLinha of fs.readFileSync(cCaminho, 'utf8').split(/\r?\n/)) {
+      const cTrim = cLinha.trim();
+      if (!cTrim || cTrim.startsWith('#')) continue;
+      const nIgual = cTrim.indexOf('=');
+      if (nIgual <= 0) continue;
+      const cChave = cTrim.slice(0, nIgual).trim();
+      const cValor = cTrim.slice(nIgual + 1).trim().replace(/^["']|["']$/g, '');
+      if (process.env[cChave] === undefined) {
+         process.env[cChave] = cValor;
+      }
+   }
+}
+
+carregarArquivoEnv('.env.local');
+carregarArquivoEnv('.env');
+
+const L_PRE_CR = process.env.PRE_CR === '1';
+const L_USAR_CHROME_INSTALADO = !process.env.CI && process.env.E2E_USE_CHROMIUM !== '1';
+
+function useNavegadorE2e() {
+   const oPerfil = devices['Desktop Chrome'];
+   if (!L_USAR_CHROME_INSTALADO) {
+      return oPerfil;
+   }
+   return {
+      ...oPerfil,
+      channel: 'chrome' as const,
+   };
+}
+
+export default defineConfig({
+   testDir: './tests/e2e',
+   fullyParallel: true,
+   forbidOnly: !!process.env.CI,
+   retries: process.env.CI ? 2 : 0,
+   workers: process.env.CI ? 1 : undefined,
+   timeout: 45_000,
+   reporter: process.env.E2E_REPORTER_LISTA === '1'
+      ? [
+           ['list', {printSteps: true}],
+           ['html', {open: 'never'}],
+        ]
+      : [['list'], ['html', {open: 'never'}]],
+   use: {
+      baseURL: process.env.E2E_BASE_URL || 'http://127.0.0.1:5173',
+      trace: 'on-first-retry',
+      screenshot: 'only-on-failure',
+      video: 'retain-on-failure',
+      actionTimeout: 15_000,
+      navigationTimeout: 45_000,
+   },
+   projects: [
+      ...(L_PRE_CR
+         ? [
+              {
+                 name: 'pre-cr-setup',
+                 testMatch: '**/helpers/pre-cr/pre-cr.setup.ts',
+              },
+           ]
+         : []),
+      {
+         name: 'chromium',
+         testMatch: '**/specs/**/*.spec.ts',
+         use: useNavegadorE2e(),
+         dependencies: L_PRE_CR ? ['pre-cr-setup'] : [],
+      },
+   ],
+});

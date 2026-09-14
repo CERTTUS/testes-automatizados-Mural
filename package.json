@@ -1,0 +1,23 @@
+{
+  "name": "testes-automatizados-mural",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Suíte Playwright — Mural de Sugestões (QA_PRE_CR + E2E pontual)",
+  "type": "module",
+  "scripts": {
+    "test:e2e": "playwright test --project=chromium",
+    "test:e2e:headed": "playwright test --headed --project=chromium",
+    "test:e2e:debug": "playwright test --debug",
+    "test:pre-cr": "node scripts/pre-cr/run-pre-cr.mjs",
+    "pre-cr:empacotar": "node scripts/pre-cr/empacotar-evidencias.mjs",
+    "pre-cr:corpo-pr": "node scripts/pre-cr/gerar-corpo-pr.mjs",
+    "pre-cr:modulos": "node scripts/pre-cr/listar-modulos.mjs",
+    "pre-cr:resolver": "node scripts/pre-cr/resolver-modulo.mjs --json",
+    "pre-cr:bootstrap": "node scripts/pre-cr/bootstrap-modulo.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.55.0",
+    "@types/node": "^24.10.1",
+    "typescript": "^5.9.3"
+  }
+}

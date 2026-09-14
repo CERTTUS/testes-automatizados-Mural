@@ -1,0 +1,37 @@
+# Dependências
+node_modules/
+
+# Variáveis locais
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Saídas do Playwright
+playwright-report/
+playwright-output/
+test-results/
+blob-report/
+.playwright/
+.auth/
+
+# Logs e caches
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+*.swp
+*.swo
+
+# Cursor
+.cursor/mcp.json
+.cursor/mcp.env
+
+# QA_PRE_CR
+evidencias-pr/*
+!evidencias-pr/README.md
+docs/tests/**
+!docs/tests/README.md
