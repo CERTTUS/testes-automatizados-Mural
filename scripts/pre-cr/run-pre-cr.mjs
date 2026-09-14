@@ -8,6 +8,7 @@ import path from 'node:path'
 import { spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { coletarArtefatosPlaywright } from './lib/coletar-artefatos.mjs'
+import { garantirRodada } from './lib/rodada.mjs'
 import { gerarResultadoExecucaoDev } from './lib/gerar-resultado-execucao.mjs'
 import { executarSpecsPlaywright } from './lib/executar-specs.mjs'
 import {
@@ -76,6 +77,17 @@ const usarSpecs = Array.isArray(modulo.specs) && modulo.specs.length > 0 && !mod
 const projetos = modulo.playwrightProjects || projetosPadrao
 
 const root = repoRoot()
+
+if (args.parentKey) {
+  garantirRodada({
+    root,
+    parentKey: args.parentKey,
+    devKey: args.devKey,
+    modulo,
+    produto,
+  })
+}
+
 const pastaBase = resolverPastaEvidencias({
   devKey: args.devKey,
   parentKey: args.parentKey,

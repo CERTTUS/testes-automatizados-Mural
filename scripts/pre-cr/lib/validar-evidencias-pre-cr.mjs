@@ -1,7 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 
-const EXT_PROVA = ['.png', '.json', '.xml', '.webm', '.zip']
+const EXT_PROVA = ['.png', '.json', '.xml', '.webm', '.zip', '.md']
 
 function listarArquivos(dir, acc = []) {
   if (!fs.existsSync(dir)) return acc

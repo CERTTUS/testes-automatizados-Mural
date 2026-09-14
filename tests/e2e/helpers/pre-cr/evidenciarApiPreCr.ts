@@ -1,4 +1,5 @@
 import type {TestInfo} from '@playwright/test';
+import {caminhoRelativoRun, gravarArquivoEvidenciaPreCr, registrarCtManifest} from './gravarEvidenciaPreCr';
 
 function corpoJson(cTexto: string): unknown {
    try {
@@ -10,7 +11,7 @@ function corpoJson(cTexto: string): unknown {
 
 /**
  * Evidência obrigatória no PASS — hop Dev QA_PRE_CR (PRE_CR=1).
- * Anexa status + corpo da resposta HTTP para coleta em evidencias/api/.
+ * Grava JSON em evidencias/api/ e anexa no relatório Playwright.
  */
 export async function evidenciarApiPreCr(
    testInfo: TestInfo,
@@ -23,16 +24,21 @@ export async function evidenciarApiPreCr(
       return;
    }
 
+   const nomeArquivo = `${ctId}-response.json`;
    const oPayload = {
       status: nStatus,
       url: cUrl,
       body: corpoJson(cCorpo),
    };
+   const cJson = JSON.stringify(oPayload, null, 2);
 
-   await testInfo.attach(`${ctId}-response.json`, {
-      body: JSON.stringify(oPayload, null, 2),
+   await testInfo.attach(nomeArquivo, {
+      body: cJson,
       contentType: 'application/json',
    });
+
+   const caminhoApi = gravarArquivoEvidenciaPreCr('api', nomeArquivo, cJson);
+   registrarCtManifest(ctId, {api: caminhoRelativoRun(caminhoApi)});
 
    testInfo.annotations.push({
       type: 'evidencia-pass',

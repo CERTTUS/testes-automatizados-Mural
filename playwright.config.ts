@@ -52,9 +52,9 @@ export default defineConfig({
       : [['list'], ['html', {open: 'never'}]],
    use: {
       baseURL: process.env.E2E_BASE_URL || 'http://127.0.0.1:5173',
-      trace: 'on-first-retry',
+      trace: L_PRE_CR ? 'retain-on-failure' : 'on-first-retry',
       screenshot: 'only-on-failure',
-      video: 'retain-on-failure',
+      video: L_PRE_CR ? 'on' : 'retain-on-failure',
       actionTimeout: 15_000,
       navigationTimeout: 45_000,
    },

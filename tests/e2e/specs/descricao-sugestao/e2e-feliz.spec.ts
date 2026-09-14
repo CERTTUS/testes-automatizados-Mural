@@ -1,5 +1,4 @@
 import {expect, test} from '../../fixtures';
-import '../../helpers/pre-cr/preCrGlobalHooks';
 import {N_DESCRICAO_SUGESTAO_MAX} from '../../helpers/env';
 import {LoginPage} from '../../pages/LoginPage';
 import {MuralPage} from '../../pages/MuralPage';

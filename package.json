@@ -13,7 +13,8 @@
     "pre-cr:corpo-pr": "node scripts/pre-cr/gerar-corpo-pr.mjs",
     "pre-cr:modulos": "node scripts/pre-cr/listar-modulos.mjs",
     "pre-cr:resolver": "node scripts/pre-cr/resolver-modulo.mjs --json",
-    "pre-cr:bootstrap": "node scripts/pre-cr/bootstrap-modulo.mjs"
+    "pre-cr:bootstrap": "node scripts/pre-cr/bootstrap-modulo.mjs",
+    "pre-cr:iniciar-rodada": "node scripts/pre-cr/iniciar-rodada.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.55.0",
