@@ -11,7 +11,7 @@ function corpoJson(cTexto: string): unknown {
 
 /**
  * Evidência obrigatória no PASS — hop Dev QA_PRE_CR (PRE_CR=1).
- * Grava JSON em evidencias/api/ e anexa no relatório Playwright.
+ * Grava JSON em evidencias/ e anexa no relatório Playwright.
  */
 export async function evidenciarApiPreCr(
    testInfo: TestInfo,
@@ -37,7 +37,7 @@ export async function evidenciarApiPreCr(
       contentType: 'application/json',
    });
 
-   const caminhoApi = gravarArquivoEvidenciaPreCr('api', nomeArquivo, cJson);
+   const caminhoApi = gravarArquivoEvidenciaPreCr(nomeArquivo, cJson);
    registrarCtManifest(ctId, {api: caminhoRelativoRun(caminhoApi)});
 
    testInfo.annotations.push({

@@ -19,22 +19,12 @@ import {
   repoRoot,
   resolverPastaEvidencias,
   resolverPastaZips,
+  resolverUltimaRun,
 } from './lib/paths.mjs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const catalogo = JSON.parse(fs.readFileSync(path.join(__dirname, 'catalogo-modulos.json'), 'utf8'))
 const produto = catalogo.produto || 'web'
-
-function ultimaRun(pastaBase) {
-  const runsDir = path.join(pastaBase, 'runs')
-  if (!fs.existsSync(runsDir)) return null
-  const runs = fs
-    .readdirSync(runsDir, { withFileTypes: true })
-    .filter((e) => e.isDirectory())
-    .map((e) => e.name)
-    .sort()
-  return runs.length ? path.join(runsDir, runs[runs.length - 1]) : null
-}
 
 const args = parseArgs(process.argv.slice(2))
 if (!args.modulo || (!args.devKey && !args.prNumber)) {
@@ -55,7 +45,7 @@ const pastaBase = resolverPastaEvidencias({
   prNumber: args.prNumber,
   root,
 })
-const runDir = ultimaRun(pastaBase)
+const runDir = resolverUltimaRun(pastaBase)
 
 if (!runDir) {
   console.error('[pre-cr] BLOQUEADO: nenhuma run em evidencias-pr — rode test:pre-cr antes.')

@@ -1,11 +1,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import type {Page, TestInfo} from '@playwright/test';
+import type {TestInfo} from '@playwright/test';
 
-export type TipoEvidenciaPreCr = 'screenshots' | 'api' | 'videos' | 'traces';
-
-/** Pasta de evidência dentro de PRE_CR_RUN_DIR/evidencias/<tipo>. */
-export function pastaEvidenciaPreCr(tipo: TipoEvidenciaPreCr): string | null {
+/** Pasta plana: PRE_CR_RUN_DIR/evidencias/ (sem subpastas por tipo). */
+export function pastaEvidenciasRun(): string | null {
    if (process.env.PRE_CR !== '1') {
       return null;
    }
@@ -13,18 +11,17 @@ export function pastaEvidenciaPreCr(tipo: TipoEvidenciaPreCr): string | null {
    if (!runDir) {
       return null;
    }
-   const dir = path.join(runDir, 'evidencias', tipo);
+   const dir = path.join(runDir, 'evidencias');
    fs.mkdirSync(dir, {recursive: true});
    return dir;
 }
 
-/** Grava arquivo em evidencias/<tipo>/ e retorna caminho absoluto. */
+/** Grava prova em evidencias/<arquivo> */
 export function gravarArquivoEvidenciaPreCr(
-   tipo: Exclude<TipoEvidenciaPreCr, 'traces'>,
    nomeArquivo: string,
    conteudo: Buffer | string,
 ): string | null {
-   const dir = pastaEvidenciaPreCr(tipo);
+   const dir = pastaEvidenciasRun();
    if (!dir) {
       return null;
    }
@@ -33,48 +30,27 @@ export function gravarArquivoEvidenciaPreCr(
    return dest;
 }
 
-/** Registra CT → artefatos para o coletor mapear vídeo/trace após a suíte. */
+/** Registra CT → artefatos para o coletor mapear vídeo após a suíte. */
 export function registrarCtManifest(
    ctId: string,
    artefatos: {
       screenshot?: string | null;
       api?: string | null;
+      video?: string | null;
       outputDir?: string | null;
    },
 ): void {
-   const dir = pastaEvidenciaPreCr('screenshots');
+   const dir = pastaEvidenciasRun();
    if (!dir) {
       return;
    }
-   const manifestPath = path.join(path.dirname(dir), 'manifest-cts.jsonl');
+   const manifestPath = path.join(dir, 'manifest-cts.jsonl');
    const linha = JSON.stringify({
       ctId,
       ...artefatos,
       em: new Date().toISOString(),
    });
    fs.appendFileSync(manifestPath, `${linha}\n`, 'utf8');
-}
-
-/** Tenta salvar gravação de tela; se falhar, o coletor pós-run copia de test-results. */
-export async function gravarVideoPreCr(page: Page, ctId: string): Promise<string | null> {
-   if (process.env.PRE_CR !== '1') {
-      return null;
-   }
-   const dir = pastaEvidenciaPreCr('videos');
-   if (!dir) {
-      return null;
-   }
-   const video = page.video();
-   if (!video) {
-      return null;
-   }
-   const dest = path.join(dir, `${ctId}-gravacao.webm`);
-   try {
-      await video.saveAs(dest);
-      return dest;
-   } catch {
-      return null;
-   }
 }
 
 export function caminhoRelativoRun(caminhoAbsoluto: string | null): string | null {

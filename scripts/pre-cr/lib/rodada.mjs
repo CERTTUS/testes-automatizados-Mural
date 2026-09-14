@@ -1,6 +1,6 @@
 import fs from 'node:fs'
 import path from 'node:path'
-import { garantirDir, resolverPastaEvidencias, repoRoot } from './paths.mjs'
+import { RUN_ATUAL, garantirDir, resolverPastaEvidencias, repoRoot } from './paths.mjs'
 
 /**
  * Pasta de artefatos da rodada — sempre ancorada na tarefa pai (História).
@@ -80,7 +80,8 @@ export function garantirRodada({
     ? garantirDir(resolverPastaEvidencias({ devKey: cDev, parentKey: cParent, root }))
     : garantirDir(path.join(root, 'evidencias-pr', cParent))
 
-  garantirDir(path.join(pastaEvidencias, 'runs'))
+  garantirDir(path.join(pastaEvidencias, 'runs', RUN_ATUAL))
+  garantirDir(path.join(pastaEvidencias, 'runs', 'historico'))
 
   const handoffPath = path.join(docsDir, 'harness-handoff.json')
   const slug = typeof modulo === 'string' ? modulo : modulo?.slug ?? null

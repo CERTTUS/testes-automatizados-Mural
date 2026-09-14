@@ -12,12 +12,11 @@ import { garantirRodada } from './lib/rodada.mjs'
 import { gerarResultadoExecucaoDev } from './lib/gerar-resultado-execucao.mjs'
 import { executarSpecsPlaywright } from './lib/executar-specs.mjs'
 import {
-  formatRunId,
-  garantirDir,
+  limparRunDir,
   parseArgs,
-  pastaRun,
   repoRoot,
   resolverPastaEvidencias,
+  resolverRunDir,
 } from './lib/paths.mjs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -94,8 +93,8 @@ const pastaBase = resolverPastaEvidencias({
   prNumber: args.prNumber,
   root,
 })
-const runId = formatRunId(modulo.slug)
-const runDir = garantirDir(pastaRun(pastaBase, runId))
+const runDir = resolverRunDir(pastaBase)
+limparRunDir(runDir)
 
 console.log(`[pre-cr] Produto: ${produto}`)
 console.log(`[pre-cr] Modulo: ${modulo.slug}`)

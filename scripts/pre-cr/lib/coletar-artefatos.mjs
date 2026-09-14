@@ -1,11 +1,6 @@
 import fs from 'node:fs'
 import path from 'node:path'
-import { copiarDirRecursivo } from './empacotar.mjs'
-import { garantirDir, repoRoot } from './paths.mjs'
-
-const ORIGENS_PLAYWRIGHT = [
-  { origem: 'playwright-report', destino: 'evidencias/html-report' },
-]
+import { repoRoot } from './paths.mjs'
 
 function listarArquivos(dir, acc = []) {
   if (!fs.existsSync(dir)) return acc
@@ -38,75 +33,34 @@ function lerManifest(runDir) {
 
 function copiarSeExistir(origem, destino, copiados, label) {
   if (!fs.existsSync(origem)) return
-  garantirDir(path.dirname(destino))
+  if (fs.existsSync(destino)) return
   fs.copyFileSync(origem, destino)
   copiados.push(label)
 }
 
-function coletarVideosETraces(runDir, root, copiados) {
-  const videosDir = garantirDir(path.join(runDir, 'evidencias', 'videos'))
-  const tracesDir = garantirDir(path.join(runDir, 'evidencias', 'traces'))
+/** Copia só vídeos nomeados por CT — sem pastas do Playwright. */
+function coletarVideosPorCt(runDir, root, copiados) {
+  const evidenciasDir = path.join(runDir, 'evidencias')
   const testResults = path.join(root, 'test-results')
   const manifest = lerManifest(runDir)
-  const outputDirsManifest = new Set(
-    manifest.map((e) => e.outputDir).filter(Boolean),
-  )
 
   for (const entrada of manifest) {
     const ctId = entrada.ctId
-    if (!ctId) continue
+    if (!ctId || !entrada.outputDir) continue
 
-    if (entrada.outputDir) {
-      const pastaTeste = path.join(root, entrada.outputDir)
-      const pastaRelativa = entrada.outputDir.replace(/\\/g, '/')
+    const pastaTeste = path.join(root, entrada.outputDir)
+    const destino = path.join(evidenciasDir, `${ctId}-gravacao.webm`)
 
-      copiarSeExistir(
-        path.join(pastaTeste, 'video.webm'),
-        path.join(videosDir, `${ctId}-gravacao.webm`),
-        copiados,
-        `videos/${ctId}-gravacao.webm`,
-      )
-      copiarSeExistir(
-        path.join(pastaTeste, 'trace.zip'),
-        path.join(tracesDir, `${ctId}-trace.zip`),
-        copiados,
-        `traces/${ctId}-trace.zip`,
-      )
+    copiarSeExistir(
+      path.join(pastaTeste, 'video.webm'),
+      destino,
+      copiados,
+      `${ctId}-gravacao.webm`,
+    )
 
-      if (!fs.existsSync(path.join(pastaTeste, 'video.webm'))) {
-        const candidato = path.join(testResults, path.basename(pastaTeste), 'video.webm')
-        copiarSeExistir(
-          candidato,
-          path.join(videosDir, `${ctId}-gravacao.webm`),
-          copiados,
-          `videos/${ctId}-gravacao.webm`,
-        )
-      }
-      continue
-    }
-
-    if (entrada.video && fs.existsSync(path.join(runDir, entrada.video))) {
-      copiados.push(entrada.video)
-    }
-  }
-
-  if (!fs.existsSync(testResults)) return
-
-  for (const arquivo of listarArquivos(testResults)) {
-    const base = path.basename(arquivo)
-    const pastaRel = path.relative(testResults, path.dirname(arquivo)).replace(/\\/g, '/')
-    if (outputDirsManifest.has(pastaRel)) continue
-
-    if (base === 'video.webm') {
-      const dest = path.join(videosDir, `${pastaRel.replace(/[/\\]/g, '_')}-gravacao.webm`)
-      if (!fs.existsSync(dest)) {
-        copiarSeExistir(arquivo, dest, copiados, `videos/${path.basename(dest)}`)
-      }
-    } else if (base === 'trace.zip') {
-      const dest = path.join(tracesDir, `${pastaRel.replace(/[/\\]/g, '_')}-trace.zip`)
-      if (!fs.existsSync(dest)) {
-        copiarSeExistir(arquivo, dest, copiados, `traces/${path.basename(dest)}`)
-      }
+    if (!fs.existsSync(destino)) {
+      const candidato = path.join(testResults, path.basename(pastaTeste), 'video.webm')
+      copiarSeExistir(candidato, destino, copiados, `${ctId}-gravacao.webm`)
     }
   }
 }
@@ -119,15 +73,14 @@ function contarEvidenciasLocais(runDir) {
     return (
       base.endsWith('.png') ||
       base.endsWith('.json') ||
-      base.endsWith('.webm') ||
-      base.endsWith('.zip')
+      base.endsWith('.webm')
     )
   }).length
 }
 
 /**
- * Copia artefatos Playwright da run atual para a pasta da execução.
- * Screenshots/API já são gravados durante os testes em evidencias/.
+ * Coleta mínima pós-run: só arquivos por CT em evidencias/ (plano).
+ * Não copia html-report nem árvore test-results.
  * @param {string} runDir
  * @returns {string[]}
  */
@@ -135,24 +88,12 @@ export function coletarArtefatosPlaywright(runDir) {
   const root = repoRoot()
   const copiados = []
 
-  garantirDir(path.join(runDir, 'evidencias', 'screenshots'))
-  garantirDir(path.join(runDir, 'evidencias', 'api'))
-  garantirDir(path.join(runDir, 'evidencias', 'videos'))
-  garantirDir(path.join(runDir, 'evidencias', 'traces'))
-
   const locais = contarEvidenciasLocais(runDir)
   if (locais > 0) {
-    copiados.push(`evidencias/ (${locais} arquivos gravados na execução)`)
+    copiados.push(`evidencias/ (${locais} arquivo(s) por CT)`)
   }
 
-  for (const { origem, destino } of ORIGENS_PLAYWRIGHT) {
-    const src = path.join(root, origem)
-    const dst = path.join(runDir, destino)
-    const n = copiarDirRecursivo(src, dst, { maxArquivos: 120 })
-    if (n > 0) copiados.push(`${origem} (${n} arquivos)`)
-  }
-
-  coletarVideosETraces(runDir, root, copiados)
+  coletarVideosPorCt(runDir, root, copiados)
 
   return copiados
 }

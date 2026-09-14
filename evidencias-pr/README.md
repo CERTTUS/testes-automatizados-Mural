@@ -1,39 +1,37 @@
 # evidencias-pr
 
-Artefatos locais do hop Dev (QA_PRE_CR). Gitignored, exceto este README e zips versionados na PR.
+Artefatos locais do hop Dev (QA_PRE_CR). Gitignored, exceto README e zips versionados na PR.
 
-## Layout
+## Layout (simples)
 
 ```text
 evidencias-pr/
-  <parentKey>/                 # História (ex.: IN-884)
-    <devKey>/                  # Tarefa Dev (ex.: IN-891) — sem prefixo "dev-"
+  IN-884/                      # História (parentKey)
+    IN-891/                    # Tarefa Dev (devKey)
       runs/
-        <YYYY-MM-DD_HH-mm-ss>-<modulo>/    # ex.: 2026-09-14_15-09-11-descricao-sugestao
+        atual/                 # ← única execução ativa (sempre reutilizada)
           meta.md
           resultado-execucao-dev.md
           evidencias/
-            screenshots/       # CT-SMK-01-tela-final.png, CT-E2E-01-tela-final.png
-            api/                 # CT-API-01-response.json
-            videos/              # CT-SMK-01-gravacao.webm
-            traces/              # CT-SMK-01-trace.zip
-            html-report/
+            CT-SMK-01-tela-final.png
+            CT-API-01-response.json
+            CT-SMK-01-gravacao.webm
             manifest-cts.jsonl
+        historico/             # snapshots curtos (opcional, após organizar)
+          2026-09-14_15-01/
       zips/
-        harness-qa-pre-cr-<devKey>-<YYYY-MM-DD_HH-mm-ss>.zip
+        harness-qa-pre-cr-IN-891-2026-09-14_15-01.zip
 ```
+
+**Por que `atual`?** Cada `test:pre-cr` limpa e reutiliza a mesma pasta — evita acumular dezenas de runs com nomes longos.
 
 ## Comandos
 
 ```bash
-# Início do ciclo (cria pastas docs + evidencias-pr)
 npm run pre-cr:iniciar-rodada -- --parent-key IN-884 --dev-key IN-891 --modulo descricao-sugestao
-
-# Execução + coleta automática de prints/vídeos/traces
 npm run test:pre-cr -- --modulo descricao-sugestao --dev-key IN-891 --parent-key IN-884
-
-# Empacotar zip (exige evidências por CT no PASS)
 npm run pre-cr:empacotar -- --modulo descricao-sugestao --dev-key IN-891 --parent-key IN-884
-```
 
-O zip gerado por `pre-cr:empacotar` pode entrar no commit da PR (link no corpo gerado por `pre-cr:corpo-pr`).
+# Arquivar runs antigas (20260914-* / nomes longos) → historico/2026-09-14_15-01
+npm run pre-cr:renomear-runs
+```

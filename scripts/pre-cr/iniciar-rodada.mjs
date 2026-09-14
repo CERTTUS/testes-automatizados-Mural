@@ -20,7 +20,7 @@ Inicia pastas da rodada QA (docs + evidencias-pr).
 
 Layout:
   docs/tests/<parentKey>/          (status.md, harness-handoff.json, cenarios.md, …)
-  evidencias-pr/<parentKey>/<devKey>/runs/<YYYY-MM-DD_HH-mm-ss>-<modulo>/
+  evidencias-pr/<parentKey>/<devKey>/runs/atual/
 `)
 }
 

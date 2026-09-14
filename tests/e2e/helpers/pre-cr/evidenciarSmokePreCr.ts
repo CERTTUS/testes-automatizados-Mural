@@ -28,7 +28,7 @@ export async function evidenciarSmokePreCr(
       contentType: 'image/png',
    });
 
-   const caminhoPrint = gravarArquivoEvidenciaPreCr('screenshots', nomeArquivo, png);
+   const caminhoPrint = gravarArquivoEvidenciaPreCr(nomeArquivo, png);
 
    registrarCtManifest(ctId, {
       screenshot: caminhoRelativoRun(caminhoPrint),
