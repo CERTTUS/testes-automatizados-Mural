@@ -11,7 +11,11 @@ import { coletarArtefatosPlaywright } from './lib/coletar-artefatos.mjs'
 import { flattenRunDir } from './lib/provas-run.mjs'
 import { garantirRodada } from './lib/rodada.mjs'
 import { gerarResultadoExecucaoDev } from './lib/gerar-resultado-execucao.mjs'
-import { executarSpecsPlaywright } from './lib/executar-specs.mjs'
+import {
+  executarSpecsPlaywright,
+  filtrarSpecsPorCamadas,
+  parseCamadas,
+} from './lib/executar-specs.mjs'
 import {
   limparRunDir,
   parseArgs,
@@ -29,7 +33,7 @@ function ajuda() {
   console.log(`
 QA_PRE_CR — ${produto} (Playwright)
 
-  node scripts/pre-cr/run-pre-cr.mjs --modulo <slug> --dev-key <ISSUE> --parent-key <HU>
+  node scripts/pre-cr/run-pre-cr.mjs --modulo <slug> --dev-key <ISSUE> --parent-key <HU> [--camadas api|api,smoke]
 
 Modulos: npm run pre-cr:modulos
 `)
@@ -73,7 +77,10 @@ const modulo = buscarModulo(args.modulo)
 const ambiente = args.ambiente === 'test-server' ? 'test-server' : 'local'
 const npmScript =
   ambiente === 'test-server' && modulo.npmTestServer ? modulo.npmTestServer : modulo.npm
-const usarSpecs = Array.isArray(modulo.specs) && modulo.specs.length > 0 && !modulo.npm
+const camadas = parseCamadas(args.camadas)
+const specsBase = Array.isArray(modulo.specs) ? modulo.specs : []
+const specsFiltradas = specsBase.length ? filtrarSpecsPorCamadas(specsBase, camadas) : []
+const usarSpecs = specsFiltradas.length > 0 && !modulo.npm
 const projetos = modulo.playwrightProjects || projetosPadrao
 
 const root = repoRoot()
@@ -99,7 +106,12 @@ limparRunDir(runDir)
 
 console.log(`[pre-cr] Produto: ${produto}`)
 console.log(`[pre-cr] Modulo: ${modulo.slug}`)
-console.log(`[pre-cr] ${usarSpecs ? `Specs: ${modulo.specs.join(', ')}` : `Script: npm run ${npmScript}`}`)
+console.log(`[pre-cr] Camadas: ${camadas.join('+')} (E2E não roda no hop Dev)`)
+if (usarSpecs && specsFiltradas.length === 0) {
+  console.error(`[pre-cr] BLOQUEADO: nenhum spec ${camadas.join('/')} para este módulo.`)
+  process.exit(2)
+}
+console.log(`[pre-cr] ${usarSpecs ? `Specs: ${specsFiltradas.join(', ')}` : `Script: npm run ${npmScript}`}`)
 console.log(`[pre-cr] Evidencias: ${runDir}`)
 
 const envRun = {
@@ -117,7 +129,7 @@ let exitCode
 if (usarSpecs) {
   exitCode = executarSpecsPlaywright({
     root,
-    specs: modulo.specs,
+    specs: specsFiltradas,
     env: envRun,
     projects: projetos,
   })

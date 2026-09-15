@@ -8,6 +8,7 @@
     "test:e2e": "playwright test --project=chromium",
     "test:e2e:headed": "playwright test --headed --project=chromium",
     "test:e2e:debug": "playwright test --debug",
+    "test:dev": "node scripts/run-test-dev.mjs",
     "test:pre-cr": "node scripts/pre-cr/run-pre-cr.mjs",
     "pre-cr:empacotar": "node scripts/pre-cr/empacotar-evidencias.mjs",
     "pre-cr:corpo-pr": "node scripts/pre-cr/gerar-corpo-pr.mjs",
