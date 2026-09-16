@@ -25,7 +25,8 @@ function inferirTipo(ctId) {
   const id = ctId.toUpperCase()
   if (id.includes('UNIT') || id.includes('JEST')) return 'jest'
   if (id.includes('API') || id.startsWith('CEN-API')) return 'api'
-  if (id.includes('SMK') || id.startsWith('CEN-E2E')) return 'smoke'
+  if (id.includes('SMK')) return 'smoke'
+  if (id.includes('E2E')) return 'e2e'
   if (id.includes('MAN')) return 'manual'
   return 'outro'
 }
@@ -55,9 +56,7 @@ export function gerarResultadoExecucaoDev({
 
   for (const id of ids) {
     const tipo = inferirTipo(id)
-    if (tipo === 'manual') {
-      porTipo.manual += 1
-      linhasEvidencia.push(`| ${id} | manual | ○ | — |`)
+    if (tipo === 'manual' || (id.includes('E2E') && !id.includes('SMK'))) {
       continue
     }
     const prova = encontrarProvaRun(runDir, id)
@@ -96,7 +95,7 @@ export function gerarResultadoExecucaoDev({
     '',
     resumoHumano,
     '',
-    'E2E completo e checklist manual ficam para o QA.',
+    'E2E e checklist manual: WU Teste (não executados neste hop).',
     '',
     '---',
     '',
@@ -104,9 +103,9 @@ export function gerarResultadoExecucaoDev({
     '',
     '| Métrica | Valor |',
     '|---------|-------|',
+    `| Jest | ${porTipo.jest} com prova |`,
     `| API | ${porTipo.api} com prova |`,
     `| Smoke | ${porTipo.smoke} com prova |`,
-    `| Manual | ${porTipo.manual} (não executado no Dev) |`,
     `| Duração | — |`,
     '',
     '---',

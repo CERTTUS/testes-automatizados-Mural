@@ -31,25 +31,28 @@ function copiarSeExistir(origem, destino, copiados, label) {
 
 function coletarVideosPorCt(runDir, root, copiados) {
   const testResults = path.join(root, 'test-results')
+  const videosDir = path.join(runDir, 'evidencias', 'videos')
   const manifest = lerManifest(runDir)
 
   for (const entrada of manifest) {
     const ctId = entrada.ctId
     if (!ctId || !entrada.outputDir) continue
+    if (!entrada.screenshot) continue
 
     const pastaTeste = path.join(root, entrada.outputDir)
-    const destino = path.join(runDir, `${ctId}-gravacao.webm`)
+    fs.mkdirSync(videosDir, { recursive: true })
+    const destino = path.join(videosDir, `${ctId}-gravacao.webm`)
 
     copiarSeExistir(
       path.join(pastaTeste, 'video.webm'),
       destino,
       copiados,
-      `${ctId}-gravacao.webm`,
+      `videos/${ctId}-gravacao.webm`,
     )
 
     if (!fs.existsSync(destino)) {
       const candidato = path.join(testResults, path.basename(pastaTeste), 'video.webm')
-      copiarSeExistir(candidato, destino, copiados, `${ctId}-gravacao.webm`)
+      copiarSeExistir(candidato, destino, copiados, `videos/${ctId}-gravacao.webm`)
     }
   }
 }

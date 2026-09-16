@@ -9,7 +9,7 @@ export const ARQUIVOS_SISTEMA_RUN = new Set([
   'manifest-cts.jsonl',
 ])
 
-export const EXT_PROVA = ['.png', '.json', '.xml', '.webm', '.zip']
+export const EXT_PROVA = ['.png', '.json', '.xml', '.webm', '.mp4', '.zip']
 
 const RE_ARQUIVO_CT = /^CT-[A-Z0-9-]+-/i
 

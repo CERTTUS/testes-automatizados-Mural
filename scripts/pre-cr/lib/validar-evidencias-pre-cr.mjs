@@ -14,6 +14,22 @@ export function validarEvidenciasPreCr(runDir, opts = {}) {
 
   for (const ct of cts) {
     if (ct.status && ct.status !== 'PASSOU' && ct.status !== 'passed') continue
+    const id = ct.id.toUpperCase()
+    if (id.includes('E2E') && !id.includes('SMK')) continue
+    const arquivos = listarProvasRun(runDir)
+      .filter((arquivo) => path.basename(arquivo).toUpperCase().includes(id))
+      .map((arquivo) => arquivo.toLowerCase())
+    if (id.includes('SMK')) {
+      const temPng = arquivos.some((a) => a.endsWith('.png'))
+      const temVideo = arquivos.some((a) => a.endsWith('.webm') || a.endsWith('.mp4'))
+      if (!temPng || !temVideo) {
+        faltando.push({
+          ct: ct.id,
+          motivo: 'CT-SMK PASSOU exige PNG e vídeo (.webm)',
+        })
+      }
+      continue
+    }
     const prova = encontrarProvaRun(runDir, ct.id)
     if (!prova) {
       faltando.push({

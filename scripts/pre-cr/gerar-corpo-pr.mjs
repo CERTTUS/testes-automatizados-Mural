@@ -11,7 +11,6 @@ import {
   repoRoot,
   resolverPastaEvidencias,
   resolverUltimaRun,
-  resolverUltimoZip,
 } from './lib/paths.mjs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -55,13 +54,6 @@ function gitDiffStat(root) {
   return { base: 'working tree', stat: local.stdout?.trim() || '(sem diff)' }
 }
 
-function linkZipGithub(zipRel, { repo, branch }) {
-  if (!branch) return null
-  const repoSlug = repo || 'CERTTUS/testes-automatizados-Mural'
-  const caminho = zipRel.replace(/\\/g, '/')
-  return `https://github.com/${repoSlug}/raw/${branch}/${caminho}`
-}
-
 function listarSpecsAlterados(root, diffStat) {
   const linhas = diffStat.split('\n').filter((l) => /\.(ts|tsx|js|mjs|md)$/.test(l))
   return linhas
@@ -78,9 +70,9 @@ function tabelaCtsDeCenarios(cenariosMd) {
       const cols = linha.split('|').map((c) => c.trim()).filter(Boolean)
       if (cols.length >= 2 && cols[0] !== 'CT') {
         const secao = cols[1] ?? '—'
-        const trilha = /smoke/i.test(secao) ? 'smoke' : /manual/i.test(secao) ? 'manual' : 'api'
-        const status = trilha === 'manual' ? '○' : '*(preencher)*'
-        linhas.push(`| ${cols[0]} | ${secao} | ${trilha} | ${status} | |`)
+        if (/manual|e2e/i.test(secao)) continue
+        const trilha = /smoke/i.test(secao) ? 'smoke' : 'api'
+        linhas.push(`| ${cols[0]} | ${secao} | ${trilha} | *(preencher)* | |`)
       }
     }
   }
@@ -105,14 +97,6 @@ const root = repoRoot()
 const parentKey = args.parentKey || args.devKey
 const pastaBase = resolverPastaEvidencias({ devKey: args.devKey, parentKey, root })
 const runDir = resolverUltimaRun(pastaBase)
-const zipInfo = resolverUltimoZip(pastaBase)
-const zipRel = zipInfo ? path.relative(root, zipInfo.caminho).replace(/\\/g, '/') : null
-const zipLink = zipRel
-  ? linkZipGithub(zipRel, {
-      repo: args.repo,
-      branch: args.branch || process.env.GITHUB_HEAD_REF || process.env.PRE_CR_GITHUB_BRANCH,
-    })
-  : null
 const meta = runDir ? lerArquivoSeExistir(path.join(runDir, 'meta.md')) : ''
 const veredito = runDir ? extrairVeredito(runDir) : 'NAO_EXECUTADO'
 const npmScript = extrairCampoMeta(meta, 'npm') || 'test:pre-cr'
@@ -164,7 +148,7 @@ ${specs.length ? specs.map((s) => `- \`${s}\``).join('\n') : '- *(nenhum arquivo
 
 ### ▶️ Execução
 
-${runDir ? `Última run: \`${path.relative(root, runDir)}\`` : '*(sem run em evidencias-pr — rodar test:pre-cr antes da PR)*'}
+${runDir ? 'Última run empacotada no zip (não versionar paths locais).' : '*(sem run — rodar test:pre-cr antes da PR)*'}
 
 **Comando canônico:**
 
@@ -174,32 +158,37 @@ npm run test:pre-cr -- --modulo ${modulo.slug} --dev-key ${args.devKey}${args.pa
 
 ---
 
+### Resultados (hop Dev)
+
+| Camada | Valor |
+|--------|-------|
+| Jest | ${veredito === 'PASSOU' ? 'executado' : veredito} |
+| API | ${veredito === 'PASSOU' ? 'executado' : veredito} |
+| Smoke | ${veredito === 'PASSOU' ? 'executado' : veredito} |
+
 ### 📋 CTs executados (API + Smoke)
 
 | CT | Seção | Trilha | Status | Nota |
 |----|-------|--------|--------|------|
 ${tabelaCtsDeCenarios(cenariosMd)}
 
-**Seção 5 — Manual:** checklist em \`docs/tests/${modulo.slug}/cenarios.md\` (não bloqueia veredito).
+E2E e checklist manual: WU Teste.
 
 ---
 
-### 📎 Evidências versionadas nesta PR
+### Evidência zip (baixar)
 
-| Artefato | Caminho |
-|----------|---------|
-| Cenários | \`docs/tests/${modulo.slug}/cenarios.md\` |
-| Plano execução | \`docs/tests/${modulo.slug}/resumo-implementacao.md\` |
-| Resultado | \`docs/tests/${modulo.slug}/resultado-pre-cr.md\` |
-${zipInfo ? `| **Pacote zip** | \`${zipRel}\`${zipLink ? ` — [baixar](${zipLink})` : ''} |` : '| Pacote zip | *(rodar \`npm run pre-cr:empacotar\` antes da PR)* |'}
-${runDir ? `| Run local | \`evidencias-pr/${parentKey}/${args.devKey}/runs/${path.basename(runDir)}/\` *(gitignored)* |` : ''}
+*(URL HTTPS injetada por gh-pr-dual-qa-pre-cr.py --zip-path)*
+
+**Anexo Jira:** issue \`${args.devKey}\` (close-out Dev)
 
 ---
 
 ### 📝 Checklist
 
 - [ ] Veredito coerente com a execução
-- [ ] Tabela CTs com status real (✓ / ✗ / — / ○)
+- [ ] Tabela CTs com status real (✓ / ✗ / —)
+- [ ] Link HTTPS do zip no body (não path local)
 - [ ] Link PR produto na seção Contexto
 - [ ] Reviewer = Auditor do pai Jira
 
