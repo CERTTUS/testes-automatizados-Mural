@@ -41,18 +41,32 @@ function coletarVideosPorCt(runDir, root, copiados) {
 
     const pastaTeste = path.join(root, entrada.outputDir)
     fs.mkdirSync(videosDir, { recursive: true })
-    const destino = path.join(videosDir, `${ctId}-gravacao.webm`)
+    const destino = path.join(videosDir, `${ctId}-ciclo.webm`)
 
     copiarSeExistir(
       path.join(pastaTeste, 'video.webm'),
       destino,
       copiados,
-      `videos/${ctId}-gravacao.webm`,
+      `videos/${ctId}-ciclo.webm`,
     )
 
     if (!fs.existsSync(destino)) {
       const candidato = path.join(testResults, path.basename(pastaTeste), 'video.webm')
-      copiarSeExistir(candidato, destino, copiados, `videos/${ctId}-gravacao.webm`)
+      copiarSeExistir(candidato, destino, copiados, `videos/${ctId}-ciclo.webm`)
+    }
+
+    if (fs.existsSync(pastaTeste)) {
+      for (const nome of fs.readdirSync(pastaTeste)) {
+        const lower = nome.toLowerCase()
+        if (lower.includes('-pontual-') && lower.endsWith('.webm')) {
+          copiarSeExistir(
+            path.join(pastaTeste, nome),
+            path.join(videosDir, nome),
+            copiados,
+            `videos/${nome}`,
+          )
+        }
+      }
     }
   }
 }

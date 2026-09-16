@@ -2,14 +2,6 @@ import {test as base, expect} from '@playwright/test';
 import {evidenciarSmokePreCr} from './helpers/pre-cr/evidenciarSmokePreCr';
 import {extrairCtIdDoTitulo} from './helpers/pre-cr/extrairCtIdDoTitulo';
 
-function jaTemEvidenciaCt(
-   testInfo: import('@playwright/test').TestInfo,
-   ctId: string,
-): boolean {
-   const prefixo = ctId.toUpperCase();
-   return testInfo.attachments.some((anexo) => anexo.name?.toUpperCase().includes(prefixo));
-}
-
 const test = base.extend({
    _evidenciaPreCr: [
       async ({page}, use, testInfo) => {
@@ -21,7 +13,13 @@ const test = base.extend({
             return;
          }
          const ctId = extrairCtIdDoTitulo(testInfo.title);
-         if (!ctId || jaTemEvidenciaCt(testInfo, ctId) || !page) {
+         if (!ctId || !page) {
+            return;
+         }
+         const jaSmoke = testInfo.annotations.some(
+            (a) => a.type === 'evidencia-pass' && (a.description || '').toUpperCase().startsWith(`${ctId}:`),
+         );
+         if (jaSmoke) {
             return;
          }
          await evidenciarSmokePreCr(page, testInfo, ctId, testInfo.title);

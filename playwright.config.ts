@@ -54,7 +54,12 @@ export default defineConfig({
       baseURL: process.env.E2E_BASE_URL || 'http://127.0.0.1:5173',
       trace: L_PRE_CR ? 'retain-on-failure' : 'on-first-retry',
       screenshot: 'only-on-failure',
-      video: L_PRE_CR ? 'on' : 'retain-on-failure',
+      video: L_PRE_CR
+         ? {mode: 'on' as const, size: {width: 1280, height: 720}}
+         : 'retain-on-failure',
+      launchOptions: {
+         slowMo: Number(process.env.E2E_SLOW_MO ?? (L_PRE_CR ? 400 : 0)),
+      },
       actionTimeout: 15_000,
       navigationTimeout: 45_000,
    },

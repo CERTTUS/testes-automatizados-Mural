@@ -2,11 +2,6 @@ import {test} from '@playwright/test';
 import {evidenciarSmokePreCr} from './evidenciarSmokePreCr';
 import {extrairCtIdDoTitulo} from './extrairCtIdDoTitulo';
 
-function jaTemEvidenciaCt(testInfo: import('@playwright/test').TestInfo, ctId: string): boolean {
-   const prefixo = ctId.toUpperCase();
-   return testInfo.attachments.some((anexo) => anexo.name?.toUpperCase().includes(prefixo));
-}
-
 test.afterEach(async ({page}, testInfo) => {
    if (process.env.PRE_CR !== '1') {
       return;
@@ -16,11 +11,16 @@ test.afterEach(async ({page}, testInfo) => {
    }
 
    const ctId = extrairCtIdDoTitulo(testInfo.title);
-   if (!ctId || jaTemEvidenciaCt(testInfo, ctId)) {
+   if (!ctId) {
       return;
    }
 
    if (page) {
-      await evidenciarSmokePreCr(page, testInfo, ctId, testInfo.title);
+      const jaSmoke = testInfo.annotations.some(
+         (a) => a.type === 'evidencia-pass' && (a.description || '').toUpperCase().startsWith(`${ctId}:`),
+      );
+      if (!jaSmoke) {
+         await evidenciarSmokePreCr(page, testInfo, ctId, testInfo.title);
+      }
    }
 });

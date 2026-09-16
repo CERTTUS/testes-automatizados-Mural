@@ -25,7 +25,7 @@ export function validarEvidenciasPreCr(runDir, opts = {}) {
       if (!temPng || !temVideo) {
         faltando.push({
           ct: ct.id,
-          motivo: 'CT-SMK PASSOU exige PNG e vídeo (.webm)',
+          motivo: 'CT-SMK PASSOU exige PNG e vídeo do ciclo (.webm)',
         })
       }
       continue
