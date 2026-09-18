@@ -9,9 +9,22 @@ function corpoJson(cTexto: string): unknown {
    }
 }
 
+function gravarResumoApi(ctId: string, nStatus: number, cUrl: string): string | null {
+   const id = ctId.toUpperCase();
+   const resumo = [
+      `# ${id}`,
+      '',
+      `- **HTTP:** ${nStatus}`,
+      `- **URL:** ${cUrl}`,
+      `- **Prova:** resposta da API conforme cenário.`,
+      '',
+   ].join('\n');
+   return gravarArquivoEvidenciaPreCr(`${id}-resumo.md`, resumo, 'api');
+}
+
 /**
  * Evidência obrigatória no PASS — hop Dev QA_PRE_CR (PRE_CR=1).
- * Grava JSON em evidencias/ e anexa no relatório Playwright.
+ * Grava JSON + resumo .md em api/ e anexa no relatório Playwright.
  */
 export async function evidenciarApiPreCr(
    testInfo: TestInfo,
@@ -24,7 +37,8 @@ export async function evidenciarApiPreCr(
       return;
    }
 
-   const nomeArquivo = `${ctId}-response.json`;
+   const id = ctId.toUpperCase();
+   const nomeArquivo = `${id}-response.json`;
    const oPayload = {
       status: nStatus,
       url: cUrl,
@@ -37,11 +51,16 @@ export async function evidenciarApiPreCr(
       contentType: 'application/json',
    });
 
-   const caminhoApi = gravarArquivoEvidenciaPreCr(nomeArquivo, cJson);
-   registrarCtManifest(ctId, {api: caminhoRelativoRun(caminhoApi)});
+   const caminhoApi = gravarArquivoEvidenciaPreCr(nomeArquivo, cJson, 'api');
+   const caminhoResumo = gravarResumoApi(id, nStatus, cUrl);
+
+   registrarCtManifest(id, {
+      api: caminhoRelativoRun(caminhoApi),
+      screenshot: caminhoRelativoRun(caminhoResumo),
+   });
 
    testInfo.annotations.push({
       type: 'evidencia-pass',
-      description: `${ctId}: HTTP ${nStatus}`,
+      description: `${id}: HTTP ${nStatus}`,
    });
 }

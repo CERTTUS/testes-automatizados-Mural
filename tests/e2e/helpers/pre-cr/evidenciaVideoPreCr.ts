@@ -27,6 +27,20 @@ export function slugPassoVideo(passo: string): string {
   return slug || 'passo';
 }
 
+function nomeVideoPontual(passo: string): string {
+  const slug = slugPassoVideo(passo);
+  if (/^\d{2}-/.test(passo)) {
+    return `pontual-${slug}.webm`;
+  }
+  return `pontual-${slug}.webm`;
+}
+
+function pastaVideosCt(runDir: string, ctId: string): string {
+  const dir = path.join(runDir, 'smoke', 'videos', ctId.toUpperCase());
+  fs.mkdirSync(dir, { recursive: true });
+  return dir;
+}
+
 function requireLocal(): (id: string) => unknown {
   return createRequire(path.join(process.cwd(), 'package.json'));
 }
@@ -176,15 +190,8 @@ async function removerOverlayPontual(page: Page): Promise<void> {
 }
 
 /**
- * Clipe pontual de um passo (ex.: "lista-conversas", "modal-nova-conversa").
- * O vídeo do ciclo inteiro continua sendo o .webm do Playwright (`<CT>-ciclo.webm`).
- *
- * Exemplo — abrir nova conversa:
- *   await evidenciarVideoPontual(page, testInfo, 'CT-SMK-01', 'lista-conversas')
- *   await novaConversa.click()
- *   await evidenciarVideoPontual(page, testInfo, 'CT-SMK-01', 'modal-nova-conversa')
- *   await confirmar.click()
- *   await evidenciarVideoPontual(page, testInfo, 'CT-SMK-01', 'conversa-aberta')
+ * Clipe pontual de um passo — smoke/videos/<CT>/pontual-NN-tela.webm
+ * O ciclo inteiro fica em smoke/videos/<CT>/ciclo.webm (coletado do Playwright).
  */
 export async function evidenciarVideoPontual(
   page: Page,
@@ -195,9 +202,8 @@ export async function evidenciarVideoPontual(
   if (process.env.PRE_CR !== '1' || page.isClosed()) {
     return;
   }
-  const slug = slugPassoVideo(passo);
   const id = ctId.toUpperCase();
-  const nomeArquivo = `${id}-pontual-${slug}.webm`;
+  const nomeArquivo = nomeVideoPontual(passo);
   const duracaoMs = duracaoPontualMs();
   const intervalo = Math.round(1000 / PONTUAL_FPS);
   const frames: Buffer[] = [];
@@ -212,14 +218,14 @@ export async function evidenciarVideoPontual(
 
   const runDir = process.env.PRE_CR_RUN_DIR;
   const destino = runDir
-    ? path.join(runDir, 'evidencias', 'videos', nomeArquivo)
+    ? path.join(pastaVideosCt(runDir, id), nomeArquivo)
     : path.join(testInfo.outputDir, nomeArquivo);
 
   const ok = await muxPngsParaWebm(frames, destino, PONTUAL_FPS);
   if (!ok) {
     const pngFallback = nomeArquivo.replace(/\.webm$/i, '.png');
     const destPng = runDir
-      ? path.join(runDir, 'evidencias', 'screenshots', pngFallback)
+      ? path.join(runDir, 'smoke', 'prints', id, pngFallback)
       : path.join(testInfo.outputDir, pngFallback);
     fs.mkdirSync(path.dirname(destPng), { recursive: true });
     fs.writeFileSync(destPng, frames[frames.length - 1] ?? Buffer.alloc(0));
@@ -229,7 +235,7 @@ export async function evidenciarVideoPontual(
     });
     testInfo.annotations.push({
       type: 'evidencia-pontual',
-      description: `${id}:${slug}:png-fallback`,
+      description: `${id}:${passo}:png-fallback`,
     });
     return;
   }
@@ -238,6 +244,6 @@ export async function evidenciarVideoPontual(
   await testInfo.attach(nomeArquivo, { body, contentType: 'video/webm' });
   testInfo.annotations.push({
     type: 'evidencia-pontual',
-    description: `${id}:${slug}`,
+    description: `${id}:${passo}`,
   });
 }

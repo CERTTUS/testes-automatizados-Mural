@@ -30,7 +30,7 @@ function listarArquivosRecursivo(dir, acc = []) {
   return acc
 }
 
-/** Lista provas na run (raiz plana + legado em evidencias/). */
+/** Lista provas na run (layout canônico smoke/api + legado). */
 export function listarProvasRun(runDir) {
   const arquivos = []
   if (!fs.existsSync(runDir)) return arquivos
@@ -42,14 +42,11 @@ export function listarProvasRun(runDir) {
     }
   }
 
-  const legado = path.join(runDir, 'evidencias')
-  for (const arquivo of listarArquivosRecursivo(legado)) {
-    if (ehArquivoProvaCt(arquivo)) arquivos.push(arquivo)
-  }
-
-  const jestDir = path.join(runDir, 'jest')
-  for (const arquivo of listarArquivosRecursivo(jestDir)) {
-    arquivos.push(arquivo)
+  for (const sub of ['smoke', 'api', 'evidencias', 'jest']) {
+    const base = path.join(runDir, sub)
+    for (const arquivo of listarArquivosRecursivo(base)) {
+      if (sub === 'jest' || ehArquivoProvaCt(arquivo)) arquivos.push(arquivo)
+    }
   }
 
   return arquivos

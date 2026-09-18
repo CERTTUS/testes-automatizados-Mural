@@ -8,7 +8,6 @@ import path from 'node:path'
 import { spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { coletarArtefatosPlaywright } from './lib/coletar-artefatos.mjs'
-import { flattenRunDir } from './lib/provas-run.mjs'
 import { garantirRodada } from './lib/rodada.mjs'
 import { gerarResultadoExecucaoDev } from './lib/gerar-resultado-execucao.mjs'
 import {
@@ -149,7 +148,6 @@ if (usarSpecs) {
 }
 
 const artefatos = coletarArtefatosPlaywright(runDir)
-flattenRunDir(runDir)
 escreverMeta(runDir, {
   devKey: args.devKey,
   prNumber: args.prNumber,

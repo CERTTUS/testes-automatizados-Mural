@@ -42,6 +42,13 @@ export default defineConfig({
    fullyParallel: true,
    forbidOnly: !!process.env.CI,
    retries: process.env.CI ? 2 : 0,
+   /* Stop-on-fail da bateria (Harness qa-bateria-falha). PW_MAX_FAILURES=0 desliga. */
+   maxFailures: (() => {
+      const nBruto = process.env.PW_MAX_FAILURES?.trim();
+      if (nBruto === '0') return 0;
+      const n = Number(nBruto ?? '1');
+      return Number.isFinite(n) && n > 0 ? n : 1;
+   })(),
    workers: process.env.CI ? 1 : undefined,
    timeout: 45_000,
    reporter: process.env.E2E_REPORTER_LISTA === '1'

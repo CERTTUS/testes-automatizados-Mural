@@ -1,19 +1,25 @@
 /**
- * Empacota docs + última run em zip harness-qa-pre-cr-<devKey>-<timestamp>.zip
+ * Empacota evidências QA_PRE_CR no layout canônico:
+ * {parentKey}_{devKey}_{slug}_{veredito}_{YYYYMMDD}.zip
  */
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
-  copiarDocsModulo,
-  copiarDirRecursivo,
+  copiarStagingPreCr,
   criarManifest,
   criarZip,
+  formatDateYmd,
+  gerarLeiaMe,
+  nomeStem,
   nomeZip,
 } from './lib/empacotar.mjs'
-import { validarEvidenciasPreCr } from './lib/validar-evidencias-pre-cr.mjs'
 import {
-  formatTimestamp,
+  extrairCtsPassou,
+  validarEvidenciasPreCr,
+  validarLeiaMe,
+} from './lib/validar-evidencias-pre-cr.mjs'
+import {
   garantirDir,
   parseArgs,
   repoRoot,
@@ -60,20 +66,35 @@ if (!evidenciasValidacao.ok && process.env.PRE_CR_SKIP_VALIDACAO !== '1') {
   }
   process.exit(3)
 }
-const timestamp = formatTimestamp()
-const staging = garantirDir(path.join(pastaBase, '_staging', timestamp))
-const docsDir = path.join(root, modulo.docs)
 
-const docsCopiados = copiarDocsModulo(docsDir, staging)
-if (runDir) {
-  copiarDirRecursivo(runDir, path.join(staging, 'run'), { maxArquivos: 120 })
-}
-
-const veredito = runDir && fs.existsSync(path.join(runDir, 'resultado-execucao-dev.md'))
-  ? fs.readFileSync(path.join(runDir, 'resultado-execucao-dev.md'), 'utf8').includes('PASSOU')
+const veredito =
+  fs.existsSync(path.join(runDir, 'resultado-execucao-dev.md')) &&
+  fs.readFileSync(path.join(runDir, 'resultado-execucao-dev.md'), 'utf8').includes('PASSOU')
     ? 'PASSOU'
     : 'REPROVOU'
-  : 'DESCONHECIDO'
+
+const dataRodada = formatDateYmd(fs.statSync(runDir).mtime)
+const devKey = args.devKey ?? `PR-${args.prNumber}`
+const stem = nomeStem({
+  parentKey: args.parentKey,
+  devKey,
+  slug: modulo.slug,
+  veredito,
+  data: dataRodada,
+})
+
+const staging = garantirDir(path.join(pastaBase, '_staging', stem))
+const docsDir = path.join(root, modulo.docs)
+const ctsPassou = extrairCtsPassou(runDir)
+
+copiarStagingPreCr({ runDir, stagingDir: staging, ctsPassou, docsDir })
+gerarLeiaMe(staging)
+
+const leiaMeErro = validarLeiaMe(staging)
+if (leiaMeErro && process.env.PRE_CR_SKIP_VALIDACAO !== '1') {
+  console.error(`[pre-cr] BLOQUEADO: ${leiaMeErro}`)
+  process.exit(3)
+}
 
 const manifest = criarManifest({
   produto,
@@ -82,19 +103,26 @@ const manifest = criarManifest({
   prNumber: args.prNumber,
   modulo: modulo.slug,
   veredito,
+  stem,
   npmScript: modulo.npm,
-  docsCopiados,
+  docsCopiados: ['cenarios.md', 'resultado-execucao-dev.md', 'LEIA-ME.md'],
   runDir,
   evidenciasValidacao,
 })
 
 fs.writeFileSync(path.join(staging, 'manifest.json'), JSON.stringify(manifest, null, 2), 'utf8')
 
-const zipName = nomeZip(args.devKey ?? `PR-${args.prNumber}`, timestamp)
-const zipPath = path.join(garantirDir(resolverPastaZips(pastaBase)), zipName)
+const zipPath = path.join(garantirDir(resolverPastaZips(pastaBase)), nomeZip({
+  parentKey: args.parentKey,
+  devKey,
+  slug: modulo.slug,
+  veredito,
+  data: dataRodada,
+}))
 criarZip(staging, zipPath)
 
 fs.rmSync(path.join(pastaBase, '_staging'), { recursive: true, force: true })
 
 console.log(`[pre-cr] Zip: ${zipPath}`)
+console.log(`[pre-cr] Stem: ${stem}`)
 console.log(`[pre-cr] Veredito: ${veredito}`)

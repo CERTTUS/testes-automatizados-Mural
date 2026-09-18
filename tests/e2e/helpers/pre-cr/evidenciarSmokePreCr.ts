@@ -1,5 +1,7 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import type {Page, TestInfo} from '@playwright/test';
-import {evidenciarVideoPontual} from './evidenciaVideoPreCr';
+import {evidenciarVideoPontual, slugPassoVideo} from './evidenciaVideoPreCr';
 import {
    caminhoRelativoRun,
    gravarArquivoEvidenciaPreCr,
@@ -15,6 +17,10 @@ function duracaoHoldVideoPreCr(): number {
    const bruto = Number(process.env.PRE_CR_VIDEO_HOLD_MS ?? HOLD_PADRAO_MS);
    const valor = Number.isFinite(bruto) ? bruto : HOLD_PADRAO_MS;
    return Math.min(HOLD_MAX_MS, Math.max(HOLD_MIN_MS, valor));
+}
+
+function subpastaPrintsCt(ctId: string): string {
+   return path.join('smoke', 'prints', ctId.toUpperCase());
 }
 
 /**
@@ -58,8 +64,42 @@ export async function segurarTelaParaVideoPreCr(page: Page): Promise<void> {
 }
 
 /**
+ * Print de passo intermediário — smoke/prints/{CT}/{NN}-{slug}.png
+ */
+export async function evidenciarPassoSmokePreCr(
+   page: Page,
+   testInfo: TestInfo,
+   ctId: string,
+   ordem: number,
+   slug: string,
+): Promise<void> {
+   if (process.env.PRE_CR !== '1') {
+      return;
+   }
+
+   const id = ctId.toUpperCase();
+   const nn = String(ordem).padStart(2, '0');
+   const slugNorm = slugPassoVideo(slug);
+   const nomeArquivo = `${nn}-${slugNorm}.png`;
+   const png = await page.screenshot({fullPage: false});
+
+   await testInfo.attach(nomeArquivo, {
+      body: png,
+      contentType: 'image/png',
+   });
+
+   const caminhoPrint = gravarArquivoEvidenciaPreCr(nomeArquivo, png, subpastaPrintsCt(id));
+   registrarCtManifest(id, {
+      screenshot: caminhoRelativoRun(caminhoPrint),
+      outputDir: outputDirRelativo(testInfo),
+   });
+
+   await evidenciarVideoPontual(page, testInfo, id, `${nn}-${slugNorm}`);
+}
+
+/**
  * Evidência obrigatória no PASS — hop Dev QA_PRE_CR (PRE_CR=1).
- * Print da tela + hold da gravação (quando disponível) em evidencias-pr.
+ * Print final 99-tela-final.png + hold da gravação em evidencias-pr.
  */
 export async function evidenciarSmokePreCr(
    page: Page,
@@ -71,26 +111,27 @@ export async function evidenciarSmokePreCr(
       return;
    }
 
-   const nomeArquivo = `${ctId}-tela-final.png`;
+   const id = ctId.toUpperCase();
+   const nomeArquivo = '99-tela-final.png';
    const png = await page.screenshot({fullPage: false});
 
-   await testInfo.attach(nomeArquivo, {
+   await testInfo.attach(`${id}-tela-final.png`, {
       body: png,
       contentType: 'image/png',
    });
 
-   const caminhoPrint = gravarArquivoEvidenciaPreCr(nomeArquivo, png);
+   const caminhoPrint = gravarArquivoEvidenciaPreCr(nomeArquivo, png, subpastaPrintsCt(id));
 
-   registrarCtManifest(ctId, {
+   registrarCtManifest(id, {
       screenshot: caminhoRelativoRun(caminhoPrint),
       outputDir: outputDirRelativo(testInfo),
    });
 
    testInfo.annotations.push({
       type: 'evidencia-pass',
-      description: `${ctId}: ${descricao}`,
+      description: `${id}: ${descricao}`,
    });
 
-   await evidenciarVideoPontual(page, testInfo, ctId, 'tela-final');
+   await evidenciarVideoPontual(page, testInfo, id, 'tela-final');
    await segurarTelaParaVideoPreCr(page);
 }

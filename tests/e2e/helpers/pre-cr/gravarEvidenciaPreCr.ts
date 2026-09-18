@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import type {TestInfo} from '@playwright/test';
 
-/** Raiz da run: runs/atual/ — uma pasta, arquivos por CT. */
+/** Raiz da run: runs/atual/ — layout canônico smoke/prints, api/, jest/. */
 export function pastaProvasRun(): string | null {
    if (process.env.PRE_CR !== '1') {
       return null;
@@ -15,16 +15,21 @@ export function pastaProvasRun(): string | null {
    return runDir;
 }
 
-/** Grava prova na raiz da run (ex.: CT-SMK-01-tela-final.png). */
+/**
+ * Grava prova na run (ex.: smoke/prints/CT-SMK-01/01-lista.png ou api/CT-API-01-response.json).
+ */
 export function gravarArquivoEvidenciaPreCr(
    nomeArquivo: string,
    conteudo: Buffer | string,
+   subpasta?: string,
 ): string | null {
    const dir = pastaProvasRun();
    if (!dir) {
       return null;
    }
-   const dest = path.join(dir, nomeArquivo);
+   const destDir = subpasta ? path.join(dir, subpasta) : dir;
+   fs.mkdirSync(destDir, {recursive: true});
+   const dest = path.join(destDir, nomeArquivo);
    fs.writeFileSync(dest, conteudo);
    return dest;
 }
