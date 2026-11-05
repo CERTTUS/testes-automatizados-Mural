@@ -23,6 +23,9 @@
  * Também aceita variáveis de ambiente: RELEASE_DE, RELEASE_SO, RELEASE_PULAR,
  * RELEASE_INCLUIR, RELEASE_CONTINUAR=1, RELEASE_SEM_PRE_VOO=1.
  *
+ * Variáveis das fases: `envPadrao` da config é só o valor padrão (o terminal
+ * pode sobrescrever, ex.: PW_MAX_FAILURES=0); `env` de cada fase é fixo.
+ *
  * Códigos de saída: 0 = tudo passou · 1 = alguma fase falhou · 2 = pré-voo
  * ou configuração inválida.
  */
@@ -158,14 +161,14 @@ async function rodarPreVoo(oPreVoo = {}) {
 // ---------------------------------------------------------------------------
 // Execução de uma fase (stdout/stderr no terminal + log em arquivo)
 // ---------------------------------------------------------------------------
-function rodarComando(sComando, oEnvExtra, sArqLog) {
+function rodarComando(sComando, oEnv, sArqLog) {
   return new Promise((resolve) => {
     const oLog = fs.createWriteStream(sArqLog);
     oLog.write(`$ ${sComando}\n\n`);
     const oFilho = spawn(sComando, {
       cwd: RAIZ,
       shell: true,
-      env: { ...process.env, FORCE_COLOR: process.stdout.isTTY ? '1' : '0', ...oEnvExtra },
+      env: oEnv,
       stdio: ['inherit', 'pipe', 'pipe'],
     });
     const encaminhar = (oDestino) => (oBuf) => {
@@ -357,7 +360,14 @@ async function main() {
     console.log(cinza(`  $ ${oFase.comando}\n`));
     const sArqLog = path.join(sDirRel, `${oFase.id}.log`);
     const nInicioFase = Date.now();
-    const nCodigo = await rodarComando(oFase.comando, { ...oConfig.envPadrao, ...oFase.env }, sArqLog);
+    // Ordem: padrão da config < terminal < env fixo da fase
+    const oEnvFase = {
+      FORCE_COLOR: process.stdout.isTTY ? '1' : '0',
+      ...oConfig.envPadrao,
+      ...process.env,
+      ...oFase.env,
+    };
+    const nCodigo = await rodarComando(oFase.comando, oEnvFase, sArqLog);
     oItem.sDuracao = formatarDuracao(Date.now() - nInicioFase);
     oItem.sLog = path.basename(sArqLog);
     oItem.status = nCodigo === 0 ? 'passou' : 'falhou';
