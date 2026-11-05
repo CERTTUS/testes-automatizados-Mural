@@ -1,5 +1,7 @@
 # CERTTUS Mural de Sugestões — Testes Automatizados
 
+> **Primeira vez aqui?** Comece pelo [GUIA.md](GUIA.md). Bateria de release: `npm run test:release`.
+
 Suíte **Playwright + TypeScript** do Mural. Base para o hop Dev (`QA_PRE_CR`): o primeiro spec de produto nasce na primeira tarefa (bootstrap do catálogo).
 
 Repositórios de produto: `mural-web` / `mural-api`.
